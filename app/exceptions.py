@@ -1,0 +1,3 @@
+
+class GroupNameTakenException(Exception):
+    pass
