@@ -21,4 +21,5 @@ class GroupMember(Base):
     __table_args__ = (
         UniqueConstraint("group_id", "user_id"),
         Index("ix_group_members_group_updated", "group_id", "updated_at"),
+        Index("ix_group_members_user_updated", "user_id", "updated_at")
     )

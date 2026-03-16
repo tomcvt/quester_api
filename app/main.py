@@ -1,13 +1,15 @@
-from fastapi import FastAPI, Request
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 import logging
 import time
 from app.core.database import engine
 from app.models.base import Base
-from app.models import user, group, group_member
+from app.models import user, group, group_member # type: ignore
 # import for Base.metadata.create_all
 from app.routers.group_router import router as group_router
+from app.routers.user_router import router as user_router
+from app.routers.auth_router import router as auth_router
 from app.core.config import settings
 
 
@@ -18,8 +20,14 @@ class InterceptHandler(logging.Handler):
 
 logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
 
-app = FastAPI(title="Quester API")
-app.include_router(group_router)
+app = FastAPI(title="Quester API", version="0.1.0")
+
+global_router = APIRouter(prefix="/api/v1")
+global_router.include_router(group_router)
+global_router.include_router(user_router)
+global_router.include_router(auth_router)
+
+app.include_router(global_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # MVP — lock this down before production
