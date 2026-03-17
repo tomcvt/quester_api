@@ -1,4 +1,6 @@
+from dataclasses import dataclass
 from datetime import datetime
+from typing import Self
 import uuid
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import String, DateTime, Uuid
@@ -8,7 +10,17 @@ from app.models.base import Base
 
 class User(Base):
     __tablename__ = "users"
-
+    
+    @staticmethod
+    def new(user: NewUser) -> 'User':
+        return User(
+            device_id=user.device_id,
+            installation_id=user.installation_id,
+            username=user.username,
+            public_id=uuid.uuid4(),
+            fcm_token=user.fcm_token
+        )
+    
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     device_id: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     installation_id: Mapped[str] = mapped_column(String, unique=True, nullable=False)
@@ -17,3 +29,10 @@ class User(Base):
     fcm_token: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+@dataclass
+class NewUser:
+    device_id: str
+    installation_id: str
+    username: str
+    fcm_token: str | None = None

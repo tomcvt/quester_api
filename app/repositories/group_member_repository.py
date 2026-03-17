@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Sequence, Tuple
 import uuid
 
 from sqlalchemy import Row, select
@@ -45,7 +46,29 @@ class GroupMemberRepository:
                 GroupMember.updated_at > timestamp
             )
         )
-        return [GroupMemberWithUser(
+        '''
+        result2 = result.all()
+        varss = result2[0][0]
+        vars2: Row[Tuple[GroupMember, str, uuid.UUID]] = result2[0]
+        vars3: Sequence[Row[tuple[GroupMember, str, uuid.UUID]]] = result2
+        x = []
+        for row in vars3:
+            member = row[0]
+            username = row[1]
+            user_public_id = row[2]
+            x.append(GroupMemberWithUser(
+                id=member.id,
+                group_id=member.group_id,
+                user_id=member.user_id,
+                role=member.role,
+                updated_at=member.updated_at,
+                username=username,
+                user_public_id=user_public_id
+            ))
+        '''
+        '''
+        return [
+            GroupMemberWithUser(
             id=row[0].id,
             group_id=row[0].group_id,
             user_id=row[0].user_id,
@@ -54,9 +77,33 @@ class GroupMemberRepository:
             username=row[1],
             user_public_id=row[2]
         ) for row in result.all()]
+        '''
+        return [
+            GroupMemberWithUser(
+                id=member.id,
+                group_id=member.group_id,
+                user_id=member.user_id,
+                role=member.role,
+                updated_at=member.updated_at,
+                username=username,
+                user_public_id=user_public_id
+            )
+            for member, username, user_public_id in result.all()
+        ]
+        
     
     async def get_group_members(self, group_id: int) -> list[GroupMember]:
         result = await self.db.execute(
             select(GroupMember).where(GroupMember.group_id == group_id)
         )
         return list(result.scalars().all())
+    
+    async def is_member(self, user_id: int, group_id: int) -> bool:
+        result = await self.db.execute(
+            select(GroupMember).where(
+                GroupMember.group_id == group_id,
+                GroupMember.user_id == user_id
+            )
+        )
+        member = result.scalars().first()
+        return member is not None

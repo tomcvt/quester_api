@@ -4,6 +4,7 @@ from loguru import logger
 import logging
 import time
 from app.core.database import engine
+from app.exc_handler import register_exception_handlers
 from app.models.base import Base
 from app.models import user, group, group_member # type: ignore
 # import for Base.metadata.create_all
@@ -34,6 +35,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+register_exception_handlers(app)
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):

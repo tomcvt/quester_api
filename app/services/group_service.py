@@ -6,14 +6,17 @@ from app.models.group_member import MemberRole
 from app.models.user import User
 from app.repositories.group_member_repository import GroupMemberRepository
 from app.repositories.group_repository import GroupRepository
+from app.repositories.quest_repository import QuestRepository
 from app.schemas.group import CreateGroupRequest
 from app.models.group import Group
 from app.schemas.group_member import GroupMemberSyncDTO
+from app.schemas.quest import QuestSyncDTO
 
 class GroupService:
-    def __init__(self, repo: GroupRepository, member_repo: GroupMemberRepository):
+    def __init__(self, repo: GroupRepository, member_repo: GroupMemberRepository, quest_repo: QuestRepository):
         self.repo = repo
         self.member_repo = member_repo
+        self.quest_repo = quest_repo
 
     async def create_group(self, current_user: User, request: CreateGroupRequest) -> Group:
         logger.info(f"Creating group with name: {request.name}")
@@ -52,3 +55,25 @@ class GroupService:
             )
             for member in members_data
         ]
+    async def sync_quests_after_timestamp(self, group_public_id: uuid.UUID, timestamp: datetime) -> list[QuestSyncDTO]:
+        group = await self.repo.get_by_public_id(group_public_id)
+        if not group:
+            logger.warning(f"Group with public_id {group_public_id} not found for syncing quests.")
+            return []
+        quests = await self.quest_repo.fetch_quests_by_group_id_after_timestamp(group.id, timestamp)
+        return [
+            QuestSyncDTO(
+                public_id=quest.public_id,
+                group_public_id=group.public_id,
+                name=quest.name,
+                data=quest.data,
+                type=quest.type,
+                inclusive=quest.inclusive,
+                status=quest.status,
+                creator_public_id=quest.creator_public_id,
+                created_at=quest.created_at,
+                updated_at=quest.updated_at
+            )
+            for quest in quests
+        ]
+        

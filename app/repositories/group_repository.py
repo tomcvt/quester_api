@@ -31,4 +31,11 @@ class GroupRepository:
             select(Group).where(Group.public_id == public_id)
         )
         return result.scalars().first()
+    
+    async def get_group_id_by_public_id(self, public_id: uuid.UUID) -> int | None:
+        result = await self.db.execute(
+            select(Group.id).where(Group.public_id == public_id)
+        )
+        group_id = result.scalars().first()
+        return group_id
         
