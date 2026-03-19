@@ -1,7 +1,6 @@
 
 
 from datetime import datetime
-import datetime
 from dataclasses import dataclass
 import uuid
 
@@ -52,6 +51,8 @@ class QuestWithUser:
     id: int
     public_id: uuid.UUID
     name: str
+    #TODO this is a bit of a hack, we should have a separate field for the data that is not a string, but this is easier for now
+    #TODO data can be nullable, we should handle that properly
     data: str
     type: QuestType
     inclusive: bool

@@ -61,3 +61,6 @@ async def startup():
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         logger.info("Database tables created successfully.")
+
+
+#uvicorn app.main:app --reload --port 8100

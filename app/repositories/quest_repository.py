@@ -55,7 +55,7 @@ class QuestRepository:
                 id=quest.id,
                 public_id=quest.public_id,
                 name=quest.name,
-                data=quest.data,
+                data=quest.data if quest.data else "", # TODO handle nullable data properly
                 type=quest.type,
                 inclusive=quest.inclusive,
                 status=quest.status,
