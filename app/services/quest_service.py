@@ -1,6 +1,8 @@
 
+import uuid
+
 from sqlalchemy.exc import IntegrityError
-from app.exceptions import BadRequestException
+from app.exceptions import BadRequestException, UnauthorizedException
 from app.models.user import User
 from app.models.quest import Quest, NewQuest, UpdateQuest
 from app.repositories.group_member_repository import GroupMemberRepository
@@ -42,9 +44,24 @@ class QuestService:
             status=quest_request.status,
             creator_id=current_user.id
         )
+        newQuest = None
         try:
-            return await self.repo.create(quest_data)
+            newQuest = await self.repo.create(quest_data)
         except IntegrityError:
             await self.repo.db.rollback()
             raise
+        if not newQuest:
+            raise Exception("Failed to create quest.")
+        questEvent = Quest
+        background_tasks.add_task(notify_group_members_of_new_quest, newQuest)
+    
+    async def delete_quest_by_public_id(self, current_user: User | None, quest_public_id: uuid.UUID):
+        quest = await self.repo.get_by_public_id(quest_public_id)
+        if not quest:
+            raise BadRequestException(f"Quest not found.")
+        if not current_user:
+            raise UnauthorizedException("Not authenticated.")
+        if quest.creator_id != current_user.id:
+            raise BadRequestException("User must be the creator of the task to delete it.")
+        await self.repo.delete(quest.id)
     

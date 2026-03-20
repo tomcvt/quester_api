@@ -1,4 +1,5 @@
 from app import exceptions
+from loguru import logger
 
 def register_exception_handlers(app):
     from fastapi import Request
@@ -28,3 +29,8 @@ def register_exception_handlers(app):
     @app.exception_handler(exceptions.InvalidCredentialsException)
     async def invalid_credentials_exception_handler(request: Request, exc: exceptions.InvalidCredentialsException):
         return JSONResponse(status_code=401, content={"detail": str(exc)})
+    
+    @app.exception_handler(Exception)
+    async def generic_exception_handler(request: Request, exc: Exception):
+        logger.error(f"Unhandled exception: {exc}")
+        return JSONResponse(status_code=500, content={"detail": "An unexpected error occurred."})

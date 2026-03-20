@@ -49,6 +49,8 @@ async def get_current_user(x_installation_id: str = Header("X-Installation-ID"),
     result = await repo.db.execute(select(User).where(User.installation_id == x_installation_id))
     user = result.scalars().first()
     if not user:
+        return None
+    if not user:
         #TODO: This is a temporary solution to create a user if it doesn't exist. We should have a proper registration flow in the future.
         user = User.new(
             NewUser(

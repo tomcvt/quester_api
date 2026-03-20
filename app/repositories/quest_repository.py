@@ -23,6 +23,10 @@ class QuestRepository:
     async def get(self, quest_id: int) -> Quest | None:
         result = await self.db.execute(select(Quest).filter_by(id=quest_id))
         return result.scalars().first()
+    
+    async def get_by_public_id(self, public_id: uuid.UUID) -> Quest | None:
+        result = await self.db.execute(select(Quest).filter_by(public_id=public_id))
+        return result.scalars().first()
 
     async def update(self, quest_id: int, quest_data: UpdateQuest) -> Quest | None:
         quest = await self.get(quest_id)

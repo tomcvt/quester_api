@@ -60,3 +60,9 @@ class QuestWithUser:
     creator_public_id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+
+@dataclass
+class QuestUpdateEvent:
+    id: int
+    group_id: int
+    status: QuestStatus
