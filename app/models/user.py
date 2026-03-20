@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Self
 import uuid
+from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import String, DateTime, Uuid
 from sqlalchemy.sql import func
@@ -29,6 +30,29 @@ class User(Base):
     fcm_token: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+class UserX(BaseModel):
+    id: int
+    device_id: str
+    installation_id: str
+    username: str
+    public_id: uuid.UUID
+    fcm_token: str | None
+    created_at: datetime
+    updated_at: datetime
+    
+    @classmethod
+    def from_orm(cls, user: User) -> Self:
+        return cls(
+            id=user.id,
+            device_id=user.device_id,
+            installation_id=user.installation_id,
+            username=user.username,
+            public_id=user.public_id,
+            fcm_token=user.fcm_token,
+            created_at=user.created_at,
+            updated_at=user.updated_at
+        )
 
 @dataclass
 class NewUser:

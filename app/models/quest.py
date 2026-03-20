@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-import enum, datetime, uuid
+from datetime import datetime
+import enum, uuid
 from datetime import datetime
 from pydantic import BaseModel
 from sqlalchemy import Boolean, ForeignKey, Index, String, Enum, Uuid, DateTime
@@ -52,6 +53,35 @@ class Quest(Base):
         Index("ix_quests_public_id", "public_id"),
         Index("ix_quests_group_id_updated_at", "group_id", "updated_at")
     )
+
+class QuestX(BaseModel):
+    id: int
+    group_id: int
+    public_id: uuid.UUID
+    name: str
+    data: str | None
+    type: QuestType
+    inclusive: bool
+    status: QuestStatus
+    creator_id: int
+    created_at: datetime
+    updated_at: datetime
+    
+    @classmethod
+    def from_orm(cls, quest: Quest) -> 'QuestX':
+        return cls(
+            id=quest.id,
+            group_id=quest.group_id,
+            public_id=quest.public_id,
+            name=quest.name,
+            data=quest.data,
+            type=quest.type,
+            inclusive=quest.inclusive,
+            status=quest.status,
+            creator_id=quest.creator_id,
+            created_at=quest.created_at,
+            updated_at=quest.updated_at
+        )
 
 @dataclass
 class NewQuest:

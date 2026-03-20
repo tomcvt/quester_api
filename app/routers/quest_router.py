@@ -5,7 +5,7 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 
 from app.dependencies import get_current_user, get_quest_service
 from app.models.user import User
@@ -18,11 +18,13 @@ router = APIRouter(prefix="/quests", tags=["quests"])
 @router.post("/create" , response_model=CreateQuestResponse, status_code=201)
 async def create_quest(
     body: CreateQuestRequest,
+    background_tasks: BackgroundTasks,
     current_user=Depends(get_current_user),
-    service: QuestService = Depends(get_quest_service)
+    service: QuestService = Depends(get_quest_service),
 ):
-    quest = await service.create_quest(current_user, body)
+    quest = await service.create_quest(current_user, body, background_tasks)
     return quest
+    
 
 @router.get("/{quest_public_id}", response_model=CreateQuestResponse)
 async def get_quest(

@@ -6,10 +6,10 @@ from sqlalchemy import Row, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from app.models import group
-from app.models.group_member import GroupMember, MemberRole
+from app.models.group_member import GroupMember, GroupMemberX, MemberRole
 from app.exceptions import GroupNameTakenException, UserAlreadyInGroupException
-from app.models.user import User
-from app.schemas.group_member import GroupMemberWithUser
+from app.models.user import User, UserX
+from app.schemas.group_member import GroupMemberWithUser, GroupMemberWithUserSlim
 
 class GroupMemberRepository:
     def __init__(self, db: AsyncSession):
@@ -37,7 +37,7 @@ class GroupMemberRepository:
             await self.db.rollback()
             raise UserAlreadyInGroupException(f"User {member.user_id} is already a member of group {member.group_id}.")
         
-    async def fetch_group_members_w_details_after_timestamp(self, group_id: int, timestamp: datetime) -> list[GroupMemberWithUser]:
+    async def fetch_group_members_w_details_after_timestamp(self, group_id: int, timestamp: datetime) -> list[GroupMemberWithUserSlim]:
         result = await self.db.execute(
             select(GroupMember, User.username, User.public_id)
             .join(User, User.id == GroupMember.user_id)
@@ -79,7 +79,7 @@ class GroupMemberRepository:
         ) for row in result.all()]
         '''
         return [
-            GroupMemberWithUser(
+            GroupMemberWithUserSlim(
                 id=member.id,
                 group_id=member.group_id,
                 user_id=member.user_id,
@@ -90,7 +90,21 @@ class GroupMemberRepository:
             )
             for member, username, user_public_id in result.all()
         ]
-        
+    
+    async def fetch_group_members_w_details_by_group_id(self, group_id: int) -> list[GroupMemberWithUser]:
+        result = await self.db.execute(
+            select(GroupMember, User)
+            .join(User, User.id == GroupMember.user_id)
+            .where(GroupMember.group_id == group_id)
+        )
+        return [
+            GroupMemberWithUser(
+                group_member=GroupMemberX.from_orm(member),
+                user=UserX.from_orm(user)
+            )
+            for member, user in result.all()
+        ]
+            
     
     async def get_group_members(self, group_id: int) -> list[GroupMember]:
         result = await self.db.execute(

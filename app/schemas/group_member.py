@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from datetime import datetime
 import uuid
 from pydantic import BaseModel, ConfigDict
-from app.models.group_member import GroupMember, MemberRole
+from app.models.group_member import GroupMember, GroupMemberX, MemberRole
+from app.models.user import User, UserX
 
 class GroupMemberSyncDTO(BaseModel):
     #public_id: str
@@ -15,7 +16,7 @@ class GroupMemberSyncDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 @dataclass
-class GroupMemberWithUser:
+class GroupMemberWithUserSlim:
     #group_member: GroupMember /we cant use because its the sqlalchemy and pydantic doesnt know how to handle it
     id: int
     group_id: int
@@ -24,6 +25,11 @@ class GroupMemberWithUser:
     updated_at: datetime
     username: str
     user_public_id: uuid.UUID
+
+@dataclass
+class GroupMemberWithUser:
+    group_member: GroupMemberX
+    user: UserX
 
 class GroupMembersSyncResponse(BaseModel):
     members: list[GroupMemberSyncDTO]

@@ -1,5 +1,7 @@
+from dataclasses import dataclass
 import enum
 from datetime import datetime
+from pydantic import BaseModel
 from sqlalchemy import String, Enum, ForeignKey, DateTime, UniqueConstraint, Index
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
@@ -23,3 +25,20 @@ class GroupMember(Base):
         Index("ix_group_members_group_updated", "group_id", "updated_at"),
         Index("ix_group_members_user_updated", "user_id", "updated_at")
     )
+
+class GroupMemberX(BaseModel):
+    id: int
+    group_id: int
+    user_id: int
+    role: MemberRole
+    updated_at: datetime
+    
+    @classmethod
+    def from_orm(cls, group_member: GroupMember) -> 'GroupMemberX':
+        return cls(
+            id=group_member.id,
+            group_id=group_member.group_id,
+            user_id=group_member.user_id,
+            role=group_member.role,
+            updated_at=group_member.updated_at
+        )

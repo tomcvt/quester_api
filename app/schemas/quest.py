@@ -66,3 +66,4 @@ class QuestUpdateEvent:
     id: int
     group_id: int
     status: QuestStatus
+    updated_at: datetime
