@@ -1,9 +1,10 @@
 from fastapi import APIRouter, FastAPI, Request
+from fastapi.concurrency import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 import logging
 import time
-from app.core.database import engine
+from app.core.database import db_lifespan
 from app.exc_handler import register_exception_handlers
 from app.models.base import Base
 from app.models import user, group, group_member # type: ignore
@@ -12,6 +13,7 @@ from app.routers.group_router import router as group_router
 from app.routers.user_router import router as user_router
 from app.routers.auth_router import router as auth_router
 from app.core.config import settings
+from app.core.firebase import firebase_lifespan
 
 
 class InterceptHandler(logging.Handler):
@@ -21,7 +23,14 @@ class InterceptHandler(logging.Handler):
 
 logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
 
-app = FastAPI(title="Quester API", version="0.1.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    #startup
+    async with db_lifespan(app):
+        async with firebase_lifespan(app):
+            yield
+
+app = FastAPI(title="Quester API", version="0.1.0", lifespan=lifespan)
 
 global_router = APIRouter(prefix="/api/v1")
 global_router.include_router(group_router)
@@ -53,14 +62,6 @@ async def log_requests(request: Request, call_next):
         duration
     )
     return response
-
-@app.on_event("startup")
-async def startup():
-    logger.info("Starting Quester Api with persistence mode: %s", settings.persistence_mode)
-    if settings.persistence_mode in ('memory', 'sqlite'):
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        logger.info("Database tables created successfully.")
 
 
 #uvicorn app.main:app --reload --port 8100

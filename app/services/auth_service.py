@@ -1,5 +1,7 @@
 import uuid
 
+from loguru import logger
+
 from app.exceptions import InvalidCredentialsException, UserAlreadyExistsException
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
@@ -13,6 +15,13 @@ class AuthService:
     async def authenticate_user(self, request: AuthRequest) -> AuthResponse:
         user = await self.user_repo.get_user_by_installation_id(request.installation_id)
         if user:
+            if not request.fcm_token:
+                logger.warning("FCM token is missing in the authentication request for existing user: {}", user.username)
+            elif request.fcm_token and user.fcm_token != request.fcm_token:
+                logger.info("Updating FCM token for user {}: {} -> {}", user.username, user.fcm_token, request.fcm_token)
+                await self.user_repo.update_fcm_token(user.id, request.fcm_token)
+            else:
+                logger.info("FCM token is unchanged for user {}: {}", user.username, user.fcm_token)
             return AuthResponse(
                 session_token="mock_session_token",
                 username=user.username,
