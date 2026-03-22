@@ -1,6 +1,7 @@
 
 import uuid
 
+from fastapi import BackgroundTasks
 from sqlalchemy.exc import IntegrityError
 from app.exceptions import BadRequestException, UnauthorizedException
 from app.models.user import User
@@ -8,7 +9,8 @@ from app.models.quest import Quest, NewQuest, UpdateQuest
 from app.repositories.group_member_repository import GroupMemberRepository
 from app.repositories.group_repository import GroupRepository
 from app.repositories.quest_repository import QuestRepository
-from app.schemas.quest import CreateQuestRequest
+from app.schemas.quest import CreateQuestRequest, QuestUpdateEvent
+from app.services.notification_service import NotificationService
 
 
 class QuestService:
@@ -16,13 +18,20 @@ class QuestService:
     Service layer for handling quest-related operations. Quests are tasks or objectives that can be created within groups.
     Quest is an inside name, product name is Task. We keep quest internally to avoid confusion with already used task
     '''
-    def __init__(self, repo: QuestRepository, group_repo: GroupRepository, group_member_repo: GroupMemberRepository):
+    def __init__(
+        self, 
+        repo: QuestRepository, 
+        group_repo: GroupRepository, 
+        group_member_repo: GroupMemberRepository,
+        notification_service: NotificationService
+        ):
         self.repo = repo
         self.group_repo = group_repo
         self.group_member_repo = group_member_repo
+        self.notification_service = notification_service
 
 
-    async def create_quest(self, current_user: User, quest_request: CreateQuestRequest) -> Quest:
+    async def create_quest(self, current_user: User, quest_request: CreateQuestRequest, background_tasks: BackgroundTasks) -> Quest:
         group_id = await self.group_repo.get_group_id_by_public_id(quest_request.group_public_id)
         if not group_id:
             #raise ValueError(f"Group with public_id {quest_request.group_public_id} not found.")
@@ -48,12 +57,21 @@ class QuestService:
         try:
             newQuest = await self.repo.create(quest_data)
         except IntegrityError:
+            #TODO - this is a very generic exception handling, we should handle specific cases like unique constraint violation on quest name within the same group and return proper error messages.
             await self.repo.db.rollback()
             raise
         if not newQuest:
             raise Exception("Failed to create quest.")
-        questEvent = Quest
-        background_tasks.add_task(notify_group_members_of_new_quest, newQuest)
+        questEvent = QuestUpdateEvent(
+            id=newQuest.id,
+            group_id=newQuest.group_id,
+            status=newQuest.status,
+            updated_at=newQuest.updated_at
+        )
+        background_tasks.add_task(
+            self.notification_service.notify_group_members_of_new_quest, questEvent
+        )
+        
     
     async def delete_quest_by_public_id(self, current_user: User | None, quest_public_id: uuid.UUID):
         quest = await self.repo.get_by_public_id(quest_public_id)
