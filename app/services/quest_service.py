@@ -48,6 +48,7 @@ class QuestService:
             group_id=group_id,
             name=quest_request.name,
             data=quest_request.data,
+            contact_info=quest_request.contact_info,
             type=quest_request.type,
             inclusive=quest_request.inclusive,
             status=quest_request.status,
@@ -71,6 +72,7 @@ class QuestService:
         background_tasks.add_task(
             self.notification_service.notify_group_members_of_new_quest, questEvent
         )
+        return newQuest
         
     
     async def delete_quest_by_public_id(self, current_user: User | None, quest_public_id: uuid.UUID):

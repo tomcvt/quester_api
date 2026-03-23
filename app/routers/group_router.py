@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from loguru import logger
 from app.schemas.group import CreateGroupRequest, GroupResponse
 from app.schemas.group_member import GroupMembersSyncResponse, GroupMembersSyncResponse
 from app.schemas.quest import QuestSyncResponse
@@ -17,11 +18,10 @@ async def create_group(
     current_user=Depends(get_current_user),
     service: GroupService = Depends(get_group_service)
 ):
-    try:
-        group = await service.create_group(current_user, body)
-        return GroupResponse.model_validate(group)
-    except GroupNameTakenException as e:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    logger.info("User {} is creating group with name '{}'", current_user.username, body.name)
+    logger.debug("current user: {}", current_user)
+    group = await service.create_group(current_user, body)
+    return GroupResponse.model_validate(group)
     
 @router.get("/{group_public_id}/members", response_model=GroupMembersSyncResponse)
 async def get_group_members(

@@ -46,38 +46,6 @@ class GroupMemberRepository:
                 GroupMember.updated_at > timestamp
             )
         )
-        '''
-        result2 = result.all()
-        varss = result2[0][0]
-        vars2: Row[Tuple[GroupMember, str, uuid.UUID]] = result2[0]
-        vars3: Sequence[Row[tuple[GroupMember, str, uuid.UUID]]] = result2
-        x = []
-        for row in vars3:
-            member = row[0]
-            username = row[1]
-            user_public_id = row[2]
-            x.append(GroupMemberWithUser(
-                id=member.id,
-                group_id=member.group_id,
-                user_id=member.user_id,
-                role=member.role,
-                updated_at=member.updated_at,
-                username=username,
-                user_public_id=user_public_id
-            ))
-        '''
-        '''
-        return [
-            GroupMemberWithUser(
-            id=row[0].id,
-            group_id=row[0].group_id,
-            user_id=row[0].user_id,
-            role=row[0].role,
-            updated_at=row[0].updated_at,
-            username=row[1],
-            user_public_id=row[2]
-        ) for row in result.all()]
-        '''
         return [
             GroupMemberWithUserSlim(
                 id=member.id,

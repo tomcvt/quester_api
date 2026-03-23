@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import quest
 from app.models.quest import NewQuest, Quest, UpdateQuest
 from app.models.user import User
-from app.schemas.quest import QuestWithUser
+from app.schemas.quest import QuestWithUserPId
 
 
 class QuestRepository:
@@ -45,7 +45,7 @@ class QuestRepository:
         await self.db.commit()
         return True
     
-    async def fetch_quests_by_group_id_after_timestamp(self, group_id: int, timestamp: datetime) -> list[QuestWithUser]:
+    async def fetch_quests_by_group_id_after_timestamp(self, group_id: int, timestamp: datetime) -> list[QuestWithUserPId]:
         result = await self.db.execute(
             select(Quest, User.public_id)
             .join(User, User.id == Quest.creator_id)
@@ -55,11 +55,12 @@ class QuestRepository:
             )
         )
         return [
-            QuestWithUser(
+            QuestWithUserPId(
                 id=quest.id,
                 public_id=quest.public_id,
                 name=quest.name,
-                data=quest.data if quest.data else "", # TODO handle nullable data properly
+                data=quest.data,
+                contact_info=quest.contact_info,
                 type=quest.type,
                 inclusive=quest.inclusive,
                 status=quest.status,

@@ -24,7 +24,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, Any]:
         yield session
 
 @asynccontextmanager
-async def db_lifespan(app: FastAPI):
+async def db_lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     if settings.persistence_mode in ('memory', 'sqlite'):
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)

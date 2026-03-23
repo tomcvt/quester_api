@@ -14,7 +14,8 @@ from app.models.quest import QuestType
 class CreateQuestRequest(BaseModel):
     group_public_id: uuid.UUID
     name: str
-    data: str
+    data: str | None = None
+    contact_info: str | None = None 
     type: QuestType
     inclusive: bool
     status: QuestStatus
@@ -23,7 +24,8 @@ class CreateQuestRequest(BaseModel):
 class CreateQuestResponse(BaseModel):
     public_id: uuid.UUID
     name: str
-    data: str
+    data: str | None
+    contact_info: str | None
     type: QuestType
     inclusive: bool
     status: QuestStatus
@@ -35,7 +37,8 @@ class QuestSyncDTO(BaseModel):
     group_public_id: uuid.UUID
     public_id: uuid.UUID
     name: str
-    data: str
+    data: str | None
+    contact_info: str | None
     type: QuestType
     inclusive: bool
     status: QuestStatus
@@ -47,13 +50,14 @@ class QuestSyncResponse(BaseModel):
     quests: list[QuestSyncDTO]
 
 @dataclass
-class QuestWithUser:
+class QuestWithUserPId:
     id: int
     public_id: uuid.UUID
     name: str
     #TODO this is a bit of a hack, we should have a separate field for the data that is not a string, but this is easier for now
     #TODO data can be nullable, we should handle that properly
-    data: str
+    data: str | None
+    contact_info: str | None
     type: QuestType
     inclusive: bool
     status: QuestStatus

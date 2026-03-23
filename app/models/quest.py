@@ -14,7 +14,7 @@ class QuestType(enum.Enum):
 class QuestStatus(enum.Enum):
     STARTED = "STARTED"
     ACCEPTED = "ACCEPTED"
-    FINISHED = "FINISHED"
+    COMPLETED = "COMPLETED"
     DELETED = "DELETED"
     TIMED_OUT = "TIMED_OUT"
 
@@ -28,6 +28,7 @@ class Quest(Base):
             name=quest.name,
             public_id=uuid.uuid4(),
             data=quest.data,
+            contact_info=quest.contact_info, 
             type=quest.type,
             inclusive=quest.inclusive,
             status=quest.status,
@@ -39,6 +40,7 @@ class Quest(Base):
     public_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True, native_uuid=False), default=uuid.uuid4, unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
     data: Mapped[str] = mapped_column(String, nullable=True)  # JSON string or any other relevant data
+    contact_info: Mapped[str] = mapped_column(String, nullable=True)  # Optional field for contact info
     type: Mapped[QuestType] = mapped_column(Enum(QuestType), nullable=False)
     inclusive: Mapped[bool] = mapped_column(Boolean, nullable=False)
     status: Mapped[QuestStatus] = mapped_column(Enum(QuestStatus), nullable=False)
@@ -60,6 +62,7 @@ class QuestX(BaseModel):
     public_id: uuid.UUID
     name: str
     data: str | None
+    contact_info: str | None
     type: QuestType
     inclusive: bool
     status: QuestStatus
@@ -75,6 +78,7 @@ class QuestX(BaseModel):
             public_id=quest.public_id,
             name=quest.name,
             data=quest.data,
+            contact_info=quest.contact_info,
             type=quest.type,
             inclusive=quest.inclusive,
             status=quest.status,
@@ -88,6 +92,7 @@ class NewQuest:
     group_id: int
     name: str
     data: str | None
+    contact_info: str | None
     type: QuestType
     inclusive: bool
     status: QuestStatus
@@ -96,6 +101,7 @@ class NewQuest:
 class UpdateQuest(BaseModel):
     name: str | None = None
     data: str | None = None
+    contact_info: str | None = None
     type: QuestType | None = None
     inclusive: bool | None = None
     status: QuestStatus | None = None
@@ -103,7 +109,7 @@ class UpdateQuest(BaseModel):
 ###
 #and quest which is id, publicId, type enum [JOB] (for now), 
 # inclusive boolean (if creator is participating), 
-# status [STARTED, ACCEPTED, FINISHED, DELETED, TIMED OUT], 
+# status [STARTED, ACCEPTED, COMPLETED, DELETED, TIMED OUT], 
 # created_at, updated_at, creator (userId). 
 # as we go we just focus on ONE route for now and i will 
 # try to by learning create others and will ask for help in 

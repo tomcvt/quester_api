@@ -10,7 +10,8 @@ from app.schemas.quest import QuestUpdateEvent
 
 class NotificationService:
     def __init__(
-        self, gm_repo: GroupMemberRepository,
+        self, 
+        gm_repo: GroupMemberRepository,
         user_repo: UserRepository,
         quest_repo: QuestRepository,
         ):

@@ -1,13 +1,9 @@
-
-
-
-
-
 import uuid
 
 from fastapi import APIRouter, BackgroundTasks, Depends
-
-from app.dependencies import get_current_user, get_quest_service
+from loguru import logger
+from app.dependencies import get_current_user, get_quest_service, get_user_service
+from app.models.quest import Quest
 from app.models.user import User
 from app.schemas.quest import CreateQuestRequest, CreateQuestResponse
 from app.services.quest_service import QuestService
@@ -19,11 +15,35 @@ router = APIRouter(prefix="/quests", tags=["quests"])
 async def create_quest(
     body: CreateQuestRequest,
     background_tasks: BackgroundTasks,
-    current_user=Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     service: QuestService = Depends(get_quest_service),
+    user_service = Depends(get_user_service)
 ):
-    quest = await service.create_quest(current_user, body, background_tasks)
-    return quest
+    quest: Quest = await service.create_quest(current_user, body, background_tasks)
+    creator_user: User | None = await user_service.get_user_by_id(quest.creator_id) if quest.creator_id else None
+    if not creator_user:
+        logger.error(f"Creator with id {quest.creator_id} not found when creating quest response.")
+        creatorPublicId = None
+    else:
+        creatorPublicId = creator_user.public_id
+    if not creatorPublicId:
+        logger.error(f"Creator public_id not found for user with id {quest.creator_id} when creating quest response.")
+        raise ValueError(f"Creator public_id not found for user with id {quest.creator_id} when creating quest response.")
+        
+        
+    response: CreateQuestResponse = CreateQuestResponse(
+        public_id=quest.public_id,
+        name=quest.name,
+        data=quest.data,
+        contact_info=quest.contact_info,
+        type=quest.type,
+        inclusive=quest.inclusive,
+        status=quest.status,
+        creator_public_id=creatorPublicId,
+        created_at=quest.created_at,
+        updated_at=quest.updated_at
+    )
+    return response
     
 
 @router.get("/{quest_public_id}", response_model=CreateQuestResponse)

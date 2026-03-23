@@ -4,7 +4,7 @@ from typing import Self
 import uuid
 from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String, DateTime, Uuid
+from sqlalchemy import Index, String, DateTime, Uuid
 from sqlalchemy.sql import func
 
 from app.models.base import Base
@@ -30,6 +30,11 @@ class User(Base):
     fcm_token: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+    
+    __table_args__ = (
+        Index("ix_users_public_id", "public_id"),
+        Index("ix_users_installation_id", "installation_id"),
+    )
 
 class UserX(BaseModel):
     id: int

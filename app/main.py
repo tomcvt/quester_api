@@ -9,6 +9,7 @@ from app.exc_handler import register_exception_handlers
 from app.models.base import Base
 from app.models import user, group, group_member # type: ignore
 # import for Base.metadata.create_all
+from app.routers.quest_router import router as quest_router
 from app.routers.group_router import router as group_router
 from app.routers.user_router import router as user_router
 from app.routers.auth_router import router as auth_router
@@ -36,6 +37,7 @@ global_router = APIRouter(prefix="/api/v1")
 global_router.include_router(group_router)
 global_router.include_router(user_router)
 global_router.include_router(auth_router)
+global_router.include_router(quest_router)
 
 app.include_router(global_router)
 app.add_middleware(
@@ -46,7 +48,7 @@ app.add_middleware(
 )
 
 register_exception_handlers(app)
-
+'''
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start = time.time()
@@ -62,6 +64,41 @@ async def log_requests(request: Request, call_next):
         duration
     )
     return response
+'''
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start = time.time()
+    response = await call_next(request)
+    duration = time.time() - start
+
+    if response.status_code in (400, 422):
+        body_bytes = b""
+        async for chunk in response.body_iterator:
+            body_bytes += chunk
+        logger.warning(
+            "method={} path={} status={} duration={:.3f}s body={}",
+            request.method,
+            request.url.path,
+            response.status_code,
+            duration,
+            body_bytes.decode()
+        )
+        from starlette.responses import Response
+        return Response(
+            content=body_bytes,
+            status_code=response.status_code,
+            headers=dict(response.headers),
+            media_type=response.media_type
+        )
+
+    logger.info(
+        "method={} path={} status={} duration={:.3f}s",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration
+    )
+    return response
 
 #uvicorn app.main:app --reload --port 8100

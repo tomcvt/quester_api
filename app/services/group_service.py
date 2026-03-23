@@ -67,6 +67,7 @@ class GroupService:
                 group_public_id=group.public_id,
                 name=quest.name,
                 data=quest.data,
+                contact_info=quest.contact_info,
                 type=quest.type,
                 inclusive=quest.inclusive,
                 status=quest.status,
