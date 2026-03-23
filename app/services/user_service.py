@@ -11,3 +11,5 @@ class UserService:
     
     async def get_user_by_id(self, id: int):
         return await self.repo.get_user_by_id(id)
+    
+    

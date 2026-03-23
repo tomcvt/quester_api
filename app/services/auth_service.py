@@ -5,7 +5,7 @@ from loguru import logger
 from app.exceptions import InvalidCredentialsException, UserAlreadyExistsException
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
-from app.schemas.auth import AuthRequest, AuthResponse
+from app.schemas.auth import AuthRequest, AuthResponse, RegistrationRequest, RegistrationResponse
 
 
 class AuthService:
@@ -50,5 +50,22 @@ class AuthService:
                 username=createdUser.username,
                 fcm_token=createdUser.fcm_token if createdUser.fcm_token else ''
             )
+    
+    async def register_user(self, request: RegistrationRequest) -> RegistrationResponse:
+        existing_user = await self.user_repo.get_user_by_installation_id(request.installation_id)
+        if existing_user:
+            raise UserAlreadyExistsException("User with this installation ID already exists")
+        
+        new_user = User(
+            device_id=request.device_id if request.device_id else f"device_{str(request.installation_id)[:8]}",
+            installation_id=request.installation_id,
+            username=request.username if request.username else f"NEW_USER_{str(request.installation_id)[:8]}",
+            public_id=uuid.uuid4()  # This will be set by the database with postgres, in sqllite we need to set
+        )
+        created_user = await self.user_repo.create_user(new_user)
+        return RegistrationResponse(
+            session_token="mock_session_token",
+            username=created_user.username,
+        )
         
     
