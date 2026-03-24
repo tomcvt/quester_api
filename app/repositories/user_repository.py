@@ -39,6 +39,16 @@ class UserRepository:
         await self.db.commit()
         await self.db.refresh(user)
         return user
+    
+    async def update_session_token(self, user_id: int, session_token: str) -> User:
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            raise ValueError("User not found")
+        user.session_token = session_token
+        self.db.add(user)
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user
 
     async def create_user(self, user: User) -> User:
         try:

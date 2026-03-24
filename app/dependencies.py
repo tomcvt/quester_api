@@ -59,9 +59,16 @@ def get_quest_service(
 def get_auth_service(user_repo: UserRepository = Depends(get_user_repository)) -> AuthService:
     return AuthService(user_repo)
 
-async def get_current_user(x_installation_id: str = Header("X-Installation-ID"), repo: UserRepository = Depends(get_user_repository)) -> User | None:
+async def get_current_user(
+    x_installation_id: str = Header("X-Installation-ID"),
+    x_session_token: str = Header("X-Session-Token"),
+    repo: UserRepository = Depends(get_user_repository),
+    ) -> User | None:
     result = await repo.db.execute(select(User).where(User.installation_id == x_installation_id))
     user = result.scalars().first()
+    if user and user.session_token != x_session_token:
+        logger.warning(f"Invalid session token for installation_id {x_installation_id}. Expected {user.session_token}, got {x_session_token}.")
+        return None
     if not user:
         logger.warning(f"No user found with installation_id {x_installation_id}.")
     if not user:

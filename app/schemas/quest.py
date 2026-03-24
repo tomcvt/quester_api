@@ -82,10 +82,10 @@ class QuestWithUserPId:
     public_id: uuid.UUID
     name: str
     data: str | None
-    contact_info: str | None
     deadline: str | None
     address: str | None
     contact_number: str | None
+    contact_info: str | None
     type: QuestType
     inclusive: bool
     status: QuestStatus

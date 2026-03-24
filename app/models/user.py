@@ -19,7 +19,8 @@ class User(Base):
             installation_id=user.installation_id,
             username=user.username,
             public_id=uuid.uuid4(),
-            fcm_token=user.fcm_token
+            fcm_token=user.fcm_token,
+            api_key_hash=user.api_key_hash
         )
     
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -27,6 +28,8 @@ class User(Base):
     installation_id: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     username: Mapped[str] = mapped_column(String, nullable=False)
     public_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True, native_uuid=False), unique=True, nullable=False)
+    api_key_hash: Mapped[str] = mapped_column(String, nullable=True)
+    session_token: Mapped[str] = mapped_column(String, nullable=True)
     fcm_token: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
@@ -42,6 +45,8 @@ class UserX(BaseModel):
     installation_id: str
     username: str
     public_id: uuid.UUID
+    api_key_hash: str | None
+    session_token: str | None
     fcm_token: str | None
     created_at: datetime
     updated_at: datetime
@@ -54,6 +59,8 @@ class UserX(BaseModel):
             installation_id=user.installation_id,
             username=user.username,
             public_id=user.public_id,
+            api_key_hash=user.api_key_hash,
+            session_token=user.session_token,
             fcm_token=user.fcm_token,
             created_at=user.created_at,
             updated_at=user.updated_at
@@ -65,3 +72,5 @@ class NewUser:
     installation_id: str
     username: str
     fcm_token: str | None = None
+    api_key_hash: str | None = None
+    session_token: str | None = None

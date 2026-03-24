@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from loguru import logger
-from app.schemas.auth import AuthRequest, AuthResponse, TokenResponse
+from app.schemas.auth import AuthRequest, AuthResponse, RegistrationRequest, RegistrationResponse, TokenResponse
 from app.services.auth_service import AuthService
 from app.dependencies import get_auth_service
 from app.exceptions import InvalidCredentialsException
@@ -14,9 +14,15 @@ async def authenticate(
     body: AuthRequest,
     service: AuthService = Depends(get_auth_service)
 ):
-    try:
-        response = await service.authenticate_user(body)
-        logger.info("User authenticated successfully: {}", response.username)
-        return response
-    except InvalidCredentialsException as e:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+    response = await service.authenticate_user(body)
+    logger.info("User authenticated successfully: {}", response.username)
+    return response
+
+@router.post("/register", response_model=RegistrationResponse, status_code=status.HTTP_201_CREATED)
+async def register(
+    body: RegistrationRequest,
+    service: AuthService = Depends(get_auth_service)
+):
+    response = await service.register_user(body)
+    logger.info("User registered successfully: {}", response.username)
+    return response

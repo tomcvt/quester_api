@@ -8,6 +8,7 @@ class TokenResponse(BaseModel):
 class AuthResponse(BaseModel):
     session_token: str
     username: str
+    public_id: uuid.UUID
     fcm_token: str
     
 
@@ -15,6 +16,7 @@ class AuthResponse(BaseModel):
 class AuthRequest(BaseModel):
     device_id: str | None = None
     installation_id: str
+    api_key: str
     username: str | None = None
     fcm_token: str | None = None
 
@@ -26,4 +28,6 @@ class RegistrationRequest(BaseModel):
 
 class RegistrationResponse(BaseModel):
     session_token: str
+    api_key: str
     username: str
+    public_id: uuid.UUID | None = None
