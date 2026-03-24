@@ -30,19 +30,9 @@ async def create_quest(
         logger.error(f"Creator public_id not found for user with id {quest.creator_id} when creating quest response.")
         raise ValueError(f"Creator public_id not found for user with id {quest.creator_id} when creating quest response.")
         
-        
-    response: CreateQuestResponse = CreateQuestResponse(
-        public_id=quest.public_id,
-        name=quest.name,
-        data=quest.data,
-        contact_info=quest.contact_info,
-        type=quest.type,
-        inclusive=quest.inclusive,
-        status=quest.status,
-        creator_public_id=creatorPublicId,
-        created_at=quest.created_at,
-        updated_at=quest.updated_at
-    )
+    response: CreateQuestResponse = CreateQuestResponse.from_orm_without_creator(quest)
+    response.creator_public_id = creatorPublicId
+    
     return response
     
 
