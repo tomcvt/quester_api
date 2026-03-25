@@ -5,14 +5,14 @@ from pydantic import BaseModel
 class TokenResponse(BaseModel):
     session_token: str
 
+#TODO add proper login
+
 class AuthResponse(BaseModel):
     session_token: str
     username: str
     public_id: uuid.UUID
     fcm_token: str
-    
 
-#TODO : add proper login
 class AuthRequest(BaseModel):
     device_id: str | None = None
     installation_id: str

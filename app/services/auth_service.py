@@ -17,11 +17,13 @@ class AuthService:
         user = await self.user_repo.get_user_by_installation_id(request.installation_id)
         if user:
             api_hash = request.api_key #TODO: hash the api key and compare with stored hash
+            # check key
             if not user.api_key_hash:
                 logger.warning("User {} does not have an API key hash set. This may indicate a data integrity issue.", user.username)
             elif user.api_key_hash != api_hash:
                 logger.warning("Invalid API key provided for user {}. Expected hash: {}, Provided hash: {}", user.username, user.api_key_hash, api_hash)
                 raise InvalidCredentialsException("Invalid API key")
+            # handle FCM token update
             if not request.fcm_token:
                 logger.warning("FCM token is missing in the authentication request for existing user: {}", user.username)
             elif request.fcm_token and user.fcm_token != request.fcm_token:
@@ -29,6 +31,7 @@ class AuthService:
                 await self.user_repo.update_fcm_token(user.id, request.fcm_token)
             else:
                 logger.info("FCM token is unchanged for user {}: {}", user.username, user.fcm_token)
+            # generate new session token
             newSessionToken = gen_utils.generate_session_token()
             await self.user_repo.update_session_token(user.id, newSessionToken)
             return AuthResponse(
