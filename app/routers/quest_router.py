@@ -34,6 +34,15 @@ async def create_quest(
     response.creator_public_id = creatorPublicId
     
     return response
+
+@router.post("/{quest_public_id}/accept", status_code=200)
+async def accept_quest(
+    quest_public_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    service: QuestService = Depends(get_quest_service)
+):
+    #TODO - implement accept quest logic in service layer and call here
+    pass
     
 
 @router.get("/{quest_public_id}", response_model=CreateQuestResponse)

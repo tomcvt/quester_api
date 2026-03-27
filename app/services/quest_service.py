@@ -1,6 +1,7 @@
 
 import uuid
 
+from loguru import logger
 from fastapi import BackgroundTasks
 from sqlalchemy.exc import IntegrityError
 from app.exceptions import BadRequestException, UnauthorizedException
@@ -57,7 +58,7 @@ class QuestService:
             status=quest_request.status,
             creator_id=current_user.id
         )
-        newQuest = None
+        newQuest: Quest | None = None
         try:
             newQuest = await self.repo.create(quest_data)
         except IntegrityError:
@@ -66,6 +67,7 @@ class QuestService:
             raise
         if not newQuest:
             raise Exception("Failed to create quest.")
+        logger.info(f"Quest created: {newQuest}")
         questEvent = QuestUpdateEvent(
             id=newQuest.id,
             group_id=newQuest.group_id,
@@ -76,6 +78,10 @@ class QuestService:
             self.notification_service.notify_group_members_of_new_quest, questEvent
         )
         return newQuest
+    
+    async def accept_quest(self, current_user: User, quest_public_id: uuid.UUID):
+        #TODO - implement accept quest logic here, this will likely involve creating a new entry in a QuestAcceptance table that tracks which users have accepted which quests, and possibly sending notifications to the quest creator and other group members.
+        pass
         
     
     async def delete_quest_by_public_id(self, current_user: User | None, quest_public_id: uuid.UUID):

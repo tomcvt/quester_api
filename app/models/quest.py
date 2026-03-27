@@ -82,6 +82,9 @@ class Quest(Base):
         Index("ix_quests_public_id", "public_id"),
         Index("ix_quests_group_id_updated_at", "group_id", "updated_at")
     )
+    
+    def __repr__(self):
+        return f"<Quest(id={self.id}, group_id={self.group_id}, public_id={self.public_id}, name='{self.name}', type={self.type}, status={self.status})>"
 
 class QuestX(BaseModel):
     id: int
