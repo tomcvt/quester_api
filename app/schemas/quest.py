@@ -23,6 +23,7 @@ class CreateQuestRequest(BaseModel):
     inclusive: bool
     status: QuestStatus
     creator_public_id: uuid.UUID
+    accepted_by_public_id: uuid.UUID | None = None
 
 class CreateQuestResponse(BaseModel):
     public_id: uuid.UUID
@@ -38,6 +39,7 @@ class CreateQuestResponse(BaseModel):
     creator_public_id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    accepted_by_public_id: uuid.UUID | None = None
     
     @classmethod
     def from_orm_without_creator(cls, quest: Quest) -> 'CreateQuestResponse':
@@ -54,7 +56,8 @@ class CreateQuestResponse(BaseModel):
             status=quest.status,
             creator_public_id=uuid.NIL,  # This will need to be set separately after fetching the creator's public_id',
             created_at=quest.created_at,
-            updated_at=quest.updated_at
+            updated_at=quest.updated_at,
+            accepted_by_public_id=uuid.NIL  # This will need to be set separately after fetching the accepter's public_id
         )
 
 class QuestSyncDTO(BaseModel):
@@ -72,6 +75,7 @@ class QuestSyncDTO(BaseModel):
     creator_public_id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    accepted_by_public_id: uuid.UUID | None = None
 
 class QuestSyncResponse(BaseModel):
     quests: list[QuestSyncDTO]
@@ -92,6 +96,7 @@ class QuestWithUserPId:
     creator_public_id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    accepted_by_public_id: uuid.UUID | None = None
 
 @dataclass
 class QuestUpdateEvent:
@@ -99,3 +104,4 @@ class QuestUpdateEvent:
     group_id: int
     status: QuestStatus
     updated_at: datetime
+    accepted_by_public_id: uuid.UUID | None = None

@@ -1,12 +1,15 @@
 
+from datetime import datetime
+from typing import cast
 import uuid
 
 from loguru import logger
 from fastapi import BackgroundTasks
+from sqlalchemy import CursorResult, Result, update
 from sqlalchemy.exc import IntegrityError
 from app.exceptions import BadRequestException, UnauthorizedException
 from app.models.user import User
-from app.models.quest import Quest, NewQuest, UpdateQuest
+from app.models.quest import Quest, NewQuest, QuestStatus, UpdateQuest
 from app.repositories.group_member_repository import GroupMemberRepository
 from app.repositories.group_repository import GroupRepository
 from app.repositories.quest_repository import QuestRepository
@@ -79,10 +82,30 @@ class QuestService:
         )
         return newQuest
     
-    async def accept_quest(self, current_user: User, quest_public_id: uuid.UUID):
-        #TODO - implement accept quest logic here, this will likely involve creating a new entry in a QuestAcceptance table that tracks which users have accepted which quests, and possibly sending notifications to the quest creator and other group members.
-        pass
-        
+    async def accept_quest(self, current_user: User | None, quest_public_id: uuid.UUID):
+        quest = await self.repo.get_by_public_id(quest_public_id)
+        if not quest:
+            raise BadRequestException(f"Quest not found.")
+        if not current_user:
+            raise UnauthorizedException("Not authenticated.")
+        if quest.accepted_by_id:
+            raise BadRequestException("Quest already accepted.")
+        try:
+            #TODO move to repository
+            stm = (update(Quest).where(
+                Quest.id == quest.id, 
+                Quest.accepted_by_id == None,
+                Quest.status == QuestStatus.STARTED)
+                   .values(accepted_by_id=current_user.id, status=QuestStatus.ACCEPTED, updated_at=datetime.now()).execution_options(synchronize_session=False))
+            result = cast(CursorResult, await self.repo.db.execute(stm))
+            await self.repo.db.commit()
+            if result.rowcount == 0:
+                raise BadRequestException("Failed to accept quest. It may have already been accepted by someone else or its status may have changed.")
+            else:
+                logger.info(f"Quest accepted: {quest_public_id} by user {current_user.public_id}")
+        except IntegrityError:
+            await self.repo.db.rollback()
+            raise
     
     async def delete_quest_by_public_id(self, current_user: User | None, quest_public_id: uuid.UUID):
         quest = await self.repo.get_by_public_id(quest_public_id)

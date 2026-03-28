@@ -2,6 +2,7 @@ from datetime import datetime
 import uuid
 
 from sqlalchemy import select
+from sqlalchemy.orm import aliased
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import quest
@@ -46,9 +47,12 @@ class QuestRepository:
         return True
     
     async def fetch_quests_by_group_id_after_timestamp(self, group_id: int, timestamp: datetime) -> list[QuestWithUserPId]:
+        creator = aliased(User)
+        accepter = aliased(User)
         result = await self.db.execute(
-            select(Quest, User.public_id)
-            .join(User, User.id == Quest.creator_id)
+            select(Quest, creator.public_id, accepter.public_id)
+            .join(creator, creator.id == Quest.creator_id)
+            .outerjoin(accepter, accepter.id == Quest.accepted_by_id)
             .where(
                 Quest.group_id == group_id,
                 Quest.updated_at > timestamp
@@ -67,10 +71,11 @@ class QuestRepository:
                 type=quest.type,
                 inclusive=quest.inclusive,
                 status=quest.status,
-                creator_public_id=user_public_id,
+                creator_public_id=creator_public_id,
+                accepted_by_public_id=accepter_public_id,
                 created_at=quest.created_at,
                 updated_at=quest.updated_at
             )
-            for quest, user_public_id in result.all()
+            for quest, creator_public_id, accepter_public_id in result.all()
         ]
     

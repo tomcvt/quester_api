@@ -56,7 +56,8 @@ class Quest(Base):
             type=quest.type,
             inclusive=quest.inclusive,
             status=quest.status,
-            creator_id=quest.creator_id
+            creator_id=quest.creator_id,
+            accepted_by_id=None
         )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -74,6 +75,7 @@ class Quest(Base):
     creator_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+    accepted_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     
     __table_args__ = (
         # Unique constraint to prevent duplicate quests with the same name in the same group
@@ -102,6 +104,7 @@ class QuestX(BaseModel):
     creator_id: int
     created_at: datetime
     updated_at: datetime
+    accepted_by_id: int | None = None
     
     @classmethod
     def from_orm(cls, quest: Quest) -> 'QuestX':
@@ -120,7 +123,8 @@ class QuestX(BaseModel):
             status=quest.status,
             creator_id=quest.creator_id,
             created_at=quest.created_at,
-            updated_at=quest.updated_at
+            updated_at=quest.updated_at,
+            accepted_by_id=quest.accepted_by_id
         )
 
 @dataclass
@@ -136,6 +140,7 @@ class NewQuest:
     inclusive: bool
     status: QuestStatus
     creator_id: int
+    accepted_by_id: int | None = None
 
 class UpdateQuest(BaseModel):
     name: str | None = None
@@ -147,7 +152,7 @@ class UpdateQuest(BaseModel):
     type: QuestType | None = None
     inclusive: bool | None = None
     status: QuestStatus | None = None
-
+    accepted_by_id: int | None = None
 ###
 #and quest which is id, publicId, type enum [JOB] (for now), 
 # inclusive boolean (if creator is participating), 
