@@ -82,7 +82,7 @@ class QuestService:
         )
         return newQuest
     
-    async def accept_quest(self, current_user: User | None, quest_public_id: uuid.UUID):
+    async def accept_quest(self, current_user: User | None, quest_public_id: uuid.UUID, background_tasks: BackgroundTasks) -> Quest:
         quest = await self.repo.get_by_public_id(quest_public_id)
         if not quest:
             raise BadRequestException(f"Quest not found.")
@@ -90,22 +90,31 @@ class QuestService:
             raise UnauthorizedException("Not authenticated.")
         if quest.accepted_by_id:
             raise BadRequestException("Quest already accepted.")
+        group_id = quest.group_id
+        is_member = await self.group_member_repo.is_member(current_user.id, group_id)
+        if not is_member:
+            raise BadRequestException("User must be a member of the group to accept a task.")
         try:
-            #TODO move to repository
-            stm = (update(Quest).where(
-                Quest.id == quest.id, 
-                Quest.accepted_by_id == None,
-                Quest.status == QuestStatus.STARTED)
-                   .values(accepted_by_id=current_user.id, status=QuestStatus.ACCEPTED, updated_at=datetime.now()).execution_options(synchronize_session=False))
-            result = cast(CursorResult, await self.repo.db.execute(stm))
-            await self.repo.db.commit()
-            if result.rowcount == 0:
+            accepted = await self.repo.accept_quest(quest.id, current_user.id)
+            if not accepted:
                 raise BadRequestException("Failed to accept quest. It may have already been accepted by someone else or its status may have changed.")
             else:
                 logger.info(f"Quest accepted: {quest_public_id} by user {current_user.public_id}")
         except IntegrityError:
-            await self.repo.db.rollback()
             raise
+        updated_quest = await self.repo.get_by_public_id(quest_public_id)
+        if not updated_quest:
+            raise Exception("Failed to retrieve updated quest after accepting.")
+        questEvent = QuestUpdateEvent(
+            id=updated_quest.id,
+            group_id=updated_quest.group_id,
+            status=updated_quest.status,
+            updated_at=updated_quest.updated_at
+        )
+        background_tasks.add_task(
+            self.notification_service.notify_group_members_of_taken_quest, questEvent
+        )
+        return updated_quest
     
     async def delete_quest_by_public_id(self, current_user: User | None, quest_public_id: uuid.UUID):
         quest = await self.repo.get_by_public_id(quest_public_id)

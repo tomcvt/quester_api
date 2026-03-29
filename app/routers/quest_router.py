@@ -5,7 +5,7 @@ from loguru import logger
 from app.dependencies import get_current_user, get_quest_service, get_user_service
 from app.models.quest import Quest
 from app.models.user import User
-from app.schemas.quest import CreateQuestRequest, CreateQuestResponse
+from app.schemas.quest import CreateQuestRequest, CreateQuestResponse, QuestSyncDTO
 from app.services.quest_service import QuestService
 
 
@@ -38,11 +38,13 @@ async def create_quest(
 @router.post("/{quest_public_id}/accept", status_code=200)
 async def accept_quest(
     quest_public_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     service: QuestService = Depends(get_quest_service)
 ):
-    #TODO - implement accept quest logic in service layer and call here
-    pass
+    updated_quest = await service.accept_quest(current_user, quest_public_id, background_tasks)
+    if not updated_quest:
+        raise Exception("Failed to accept quest.")
     
 
 @router.get("/{quest_public_id}", response_model=CreateQuestResponse)
