@@ -73,7 +73,9 @@ class QuestService:
         logger.info(f"Quest created: {newQuest}")
         questEvent = QuestUpdateEvent(
             id=newQuest.id,
+            public_id=newQuest.public_id,
             group_id=newQuest.group_id,
+            group_public_id=quest_request.group_public_id,
             status=newQuest.status,
             updated_at=newQuest.updated_at
         )
@@ -91,6 +93,9 @@ class QuestService:
         if quest.accepted_by_id:
             raise BadRequestException("Quest already accepted.")
         group_id = quest.group_id
+        group = await self.group_repo.get_by_id(group_id)
+        if not group:
+            raise BadRequestException(f"Group not found for the quest.")
         is_member = await self.group_member_repo.is_member(current_user.id, group_id)
         if not is_member:
             raise BadRequestException("User must be a member of the group to accept a task.")
@@ -107,9 +112,12 @@ class QuestService:
             raise Exception("Failed to retrieve updated quest after accepting.")
         questEvent = QuestUpdateEvent(
             id=updated_quest.id,
+            public_id=updated_quest.public_id,
             group_id=updated_quest.group_id,
+            group_public_id=group.public_id,
             status=updated_quest.status,
-            updated_at=updated_quest.updated_at
+            updated_at=updated_quest.updated_at,
+            accepted_by_public_id=current_user.public_id
         )
         background_tasks.add_task(
             self.notification_service.notify_group_members_of_taken_quest, questEvent

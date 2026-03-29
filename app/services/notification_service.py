@@ -58,8 +58,8 @@ class NotificationService:
             tokens=valid_tokens,
             data={
                 'type': 'QUEST_CREATED',
-                'group_id': questEvent.group_id,
-                'quest_id': questEvent.id,
+                'group_public_id': questEvent.group_public_id,
+                'quest_public_id': questEvent.public_id,
             },
             android=self._make_android_config(),
         )
@@ -80,7 +80,7 @@ class NotificationService:
         if not creator:
             logger.error(f"Creator with id {quest.creator_id} not found for notification.")
             return
-        questX = QuestX.from_orm(quest)
+        #questX = QuestX.from_orm(quest)
         valid_tokens = [member.user.fcm_token for member in gm_w_user_details if member.user.fcm_token]
         skipped_users = [
             member.user.username for member in gm_w_user_details 
@@ -95,8 +95,9 @@ class NotificationService:
             tokens=valid_tokens,
             data={
                 'type': 'QUEST_TAKEN',
-                'group_id': questEvent.group_id,
-                'quest_id': questEvent.id,
+                'group_public_id': questEvent.group_public_id,
+                'quest_public_id': questEvent.public_id,
+                'accepted_by_public_id': questEvent.accepted_by_public_id if questEvent.accepted_by_public_id else '',
             },
             android=self._make_android_config(),
         )
@@ -111,8 +112,9 @@ class NotificationService:
                 token=creator.fcm_token,
                 data={
                     'type': 'YOUR_QUEST_TAKEN',
-                    'group_id': questEvent.group_id,
-                    'quest_id': questEvent.id,
+                    'group_public_id': questEvent.group_public_id,
+                    'quest_public_id': questEvent.public_id,
+                    'accepted_by_public_id': questEvent.accepted_by_public_id if questEvent.accepted_by_public_id else '',
                 },
                 android=self._make_android_config(),
             )

@@ -101,7 +101,9 @@ class QuestWithUserPId:
 @dataclass
 class QuestUpdateEvent:
     id: int
+    public_id: uuid.UUID
     group_id: int
+    group_public_id: uuid.UUID
     status: QuestStatus
     updated_at: datetime
     accepted_by_public_id: uuid.UUID | None = None
