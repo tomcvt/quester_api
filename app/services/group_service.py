@@ -80,4 +80,51 @@ class GroupService:
             )
             for quest in quests
         ]
+    
+    async def join_group(self, current_user: User, group_public_id: uuid.UUID):
+        group = await self.repo.get_by_public_id(group_public_id)
+        if not group:
+            logger.warning(f"Group with public_id {group_public_id} not found for joining.")
+            raise ValueError("Group not found.")
         
+        # Check if the user is already a member of the group
+        is_member = await self.member_repo.is_member(current_user.id, group.id)
+        if is_member:
+            logger.info(f"User {current_user.username} is already a member of group {group_public_id}.")
+            return
+        
+        await self.member_repo.add_user_to_group_with_role(current_user, group, MemberRole.MEMBER)
+        logger.info(f"User {current_user.username} joined group {group_public_id} as MEMBER.")
+    
+    async def join_group_with_password(self, current_user: User, group_name: str, password: str | None) -> Group:
+        group = await self.repo.get_by_name(group_name)
+        if not group:
+            logger.warning(f"Group with name {group_name} not found for joining.")
+            raise ValueError("Group not found.")
+        
+        if group.password and group.password != password:
+            logger.warning(f"Incorrect password provided for joining group {group.public_id}.")
+            raise ValueError("Incorrect password.")
+        
+        # Check if the user is already a member of the group
+        is_member = await self.member_repo.is_member(current_user.id, group.id)
+        if is_member:
+            logger.info(f"User {current_user.username} is already a member of group {group.public_id}.")
+            return group
+        
+        await self.member_repo.add_user_to_group_with_role(current_user, group, MemberRole.MEMBER)
+        logger.info(f"User {current_user.username} joined group {group.public_id} as MEMBER.")
+        return group
+    
+    async def leave_group(self, current_user: User, group_public_id: uuid.UUID):
+        group = await self.repo.get_by_public_id(group_public_id)
+        if not group:
+            logger.warning(f"Group with public_id {group_public_id} not found for leaving.")
+            raise ValueError("Group not found.")
+        
+        wasDeleted = await self.member_repo.remove_user_from_group(current_user.id, group.id)
+        if wasDeleted:
+            logger.info(f"User {current_user.username} left group {group_public_id}.")
+        else:
+            logger.warning(f"User {current_user.username} was not a member of group {group_public_id}.")
+            raise ValueError("User is not a member of the group.")
