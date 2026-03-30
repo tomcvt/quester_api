@@ -26,6 +26,12 @@ class GroupRepository:
         )
         return result.scalars().first()
     
+    async def get_by_name(self, name: str) -> Group | None:
+        result = await self.db.execute(
+            select(Group).where(Group.name == name)
+        )
+        return result.scalars().first()
+    
     async def get_by_public_id(self, public_id: uuid.UUID) -> Group | None:
         result = await self.db.execute(
             select(Group).where(Group.public_id == public_id)

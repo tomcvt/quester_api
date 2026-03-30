@@ -30,6 +30,10 @@ def register_exception_handlers(app):
     async def invalid_credentials_exception_handler(request: Request, exc: exceptions.InvalidCredentialsException):
         return JSONResponse(status_code=401, content={"detail": str(exc)})
     
+    @app.exception_handler(ValueError)
+    async def value_error_exception_handler(request: Request, exc: ValueError):
+        return JSONResponse(status_code=400, content={"detail": str(exc)})
+
     @app.exception_handler(Exception)
     async def generic_exception_handler(request: Request, exc: Exception):
         logger.error(f"Unhandled exception: {exc}")

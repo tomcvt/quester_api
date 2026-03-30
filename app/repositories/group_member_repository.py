@@ -36,6 +36,20 @@ class GroupMemberRepository:
         except IntegrityError:
             await self.db.rollback()
             raise UserAlreadyInGroupException(f"User {member.user_id} is already a member of group {member.group_id}.")
+    
+    async def remove_user_from_group(self, user_id: int, group_id: int) -> bool:
+        result = await self.db.execute(
+            select(GroupMember).where(
+                GroupMember.user_id == user_id,
+                GroupMember.group_id == group_id
+            )
+        )
+        member = result.scalars().first()
+        if member:
+            await self.db.delete(member)
+            await self.db.commit()
+            return True
+        return False
         
     async def fetch_group_members_w_details_after_timestamp(self, group_id: int, timestamp: datetime) -> list[GroupMemberWithUserSlim]:
         result = await self.db.execute(
