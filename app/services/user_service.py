@@ -1,4 +1,8 @@
 
+import re
+
+from app.exceptions import ForbiddenException
+from app.models.user import User
 from app.repositories.user_repository import UserRepository
 
 
@@ -12,4 +16,18 @@ class UserService:
     async def get_user_by_id(self, id: int):
         return await self.repo.get_user_by_id(id)
     
+    async def change_username(self, current_user: User | None, new_username: str) -> User:
+        if not current_user:
+            raise ForbiddenException("You must be logged in to change your username.")
+        self.validate_username(new_username)
+        return await self.repo.change_username(current_user.id, new_username)
+    
+    def validate_username(self, username: str):
+        # regex for allowed characters: letters, numbers, underscores, and hyphens 3-20
+        if not username or len(username) < 3:
+            raise ValueError("Username must be at least 3 characters long.")
+        # regex for allowed characters: letters, numbers, underscores, and hyphens 3-20
+        pattern = r'^[a-zA-Z0-9_-]{3,20}$'
+        if not re.match(pattern, username):
+            raise ValueError("Username can only contain letters, numbers, underscores, and hyphens, and must be 3-20 characters long.")
     
