@@ -31,3 +31,6 @@ class RegistrationResponse(BaseModel):
     api_key: str
     username: str | None = None
     public_id: uuid.UUID | None = None
+
+class ChangeUsernameRequest(BaseModel):
+    username: str

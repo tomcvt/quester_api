@@ -61,3 +61,19 @@ class UserRepository:
             if "UNIQUE constraint failed: users.installation_id" in str(e):
                 raise UserAlreadyExistsException("A user with this installation_id already exists.")
             raise e
+    
+    async def change_username(self, user_id: int, new_username: str) -> User:
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            raise ValueError("User not found")
+        user.username = new_username
+        try:
+            self.db.add(user)
+            await self.db.commit()
+            await self.db.refresh(user)
+            return user
+        except IntegrityError as e:
+            await self.db.rollback()
+            if "UNIQUE constraint failed: users.username" in str(e):
+                raise UserAlreadyExistsException("A user with this username already exists.")
+            raise e
