@@ -39,7 +39,7 @@ class NotificationService:
         questX = QuestX.from_orm(quest)
         valid_tokens = [member.user.fcm_token for member in gm_w_user_details if member.user.fcm_token]
         skipped_users = [
-            member.user.username for member in gm_w_user_details 
+            member.user.username if member.user.username else 'Unknown' for member in gm_w_user_details 
             if not member.user.fcm_token or member.user.fcm_token.strip() == ''
             ]
         if skipped_users:
@@ -58,8 +58,8 @@ class NotificationService:
             tokens=valid_tokens,
             data={
                 'type': 'QUEST_CREATED',
-                'group_public_id': questEvent.group_public_id,
-                'quest_public_id': questEvent.public_id,
+                'group_public_id': str(questEvent.group_public_id),
+                'quest_public_id': str(questEvent.public_id),
             },
             android=self._make_android_config(),
         )
@@ -83,7 +83,7 @@ class NotificationService:
         #questX = QuestX.from_orm(quest)
         valid_tokens = [member.user.fcm_token for member in gm_w_user_details if member.user.fcm_token]
         skipped_users = [
-            member.user.username for member in gm_w_user_details 
+            member.user.username if member.user.username else 'Unknown' for member in gm_w_user_details 
             if not member.user.fcm_token or member.user.fcm_token.strip() == ''
             ]
         if skipped_users:
@@ -95,9 +95,9 @@ class NotificationService:
             tokens=valid_tokens,
             data={
                 'type': 'QUEST_TAKEN',
-                'group_public_id': questEvent.group_public_id,
-                'quest_public_id': questEvent.public_id,
-                'accepted_by_public_id': questEvent.accepted_by_public_id if questEvent.accepted_by_public_id else '',
+                'group_public_id': str(questEvent.group_public_id),
+                'quest_public_id': str(questEvent.public_id),
+                'accepted_by_public_id': str(questEvent.accepted_by_public_id) if questEvent.accepted_by_public_id else '',
             },
             android=self._make_android_config(),
         )
@@ -112,9 +112,9 @@ class NotificationService:
                 token=creator.fcm_token,
                 data={
                     'type': 'YOUR_QUEST_TAKEN',
-                    'group_public_id': questEvent.group_public_id,
-                    'quest_public_id': questEvent.public_id,
-                    'accepted_by_public_id': questEvent.accepted_by_public_id if questEvent.accepted_by_public_id else '',
+                    'group_public_id': str(questEvent.group_public_id),
+                    'quest_public_id': str(questEvent.public_id),
+                    'accepted_by_public_id': str(questEvent.accepted_by_public_id) if questEvent.accepted_by_public_id else '',
                 },
                 android=self._make_android_config(),
             )
