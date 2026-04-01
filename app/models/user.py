@@ -26,7 +26,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     device_id: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     installation_id: Mapped[str] = mapped_column(String, unique=True, nullable=False)
-    username: Mapped[str] = mapped_column(String, nullable=False)
+    username: Mapped[str] = mapped_column(String, nullable=True)
     public_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True, native_uuid=False), unique=True, nullable=False)
     api_key_hash: Mapped[str] = mapped_column(String, nullable=True)
     session_token: Mapped[str] = mapped_column(String, nullable=True)
@@ -43,7 +43,7 @@ class UserX(BaseModel):
     id: int
     device_id: str
     installation_id: str
-    username: str
+    username: str | None
     public_id: uuid.UUID
     api_key_hash: str | None
     session_token: str | None
@@ -70,7 +70,7 @@ class UserX(BaseModel):
 class NewUser:
     device_id: str
     installation_id: str
-    username: str
+    username: str | None = None
     fcm_token: str | None = None
     api_key_hash: str | None = None
     session_token: str | None = None
