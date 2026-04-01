@@ -9,7 +9,7 @@ class TokenResponse(BaseModel):
 
 class AuthResponse(BaseModel):
     session_token: str
-    username: str
+    username: str | None
     public_id: uuid.UUID
     fcm_token: str
 
@@ -23,13 +23,13 @@ class AuthRequest(BaseModel):
 class RegistrationRequest(BaseModel):
     device_id: str | None = None
     installation_id: str
-    username: str
+    username: str | None = None
     password: str
 
 class RegistrationResponse(BaseModel):
     session_token: str
     api_key: str
-    username: str
+    username: str | None = None
     public_id: uuid.UUID | None = None
 
 class ChangeUsernameRequest(BaseModel):

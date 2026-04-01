@@ -68,7 +68,7 @@ class AuthService:
             device_id=request.device_id if request.device_id else f"device_{str(request.installation_id)[:8]}",
             installation_id=request.installation_id,
             api_key_hash=api_key_hash,
-            username=request.username if request.username else '',
+            username=request.username,
         )
         created_user = await self.user_repo.create_user(User.new(new_user))
         return RegistrationResponse(
