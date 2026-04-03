@@ -29,9 +29,10 @@ def get_quest_repository(db: AsyncSession = Depends(get_db)) -> QuestRepository:
 def get_user_repository(db: AsyncSession = Depends(get_db)) -> UserRepository:
     return UserRepository(db)
 
+
+
 def get_user_service(repo: UserRepository = Depends(get_user_repository)) -> UserService:
     return UserService(repo)
-
 
 def get_notification_service(
     gm_repo = Depends(get_group_member_repository),
@@ -54,7 +55,6 @@ def get_quest_service(
     notification_service: NotificationService = Depends(get_notification_service)
     ) -> QuestService:
     return QuestService(repo, group_repo, group_member_repo, notification_service)
-
 
 def get_auth_service(user_repo: UserRepository = Depends(get_user_repository)) -> AuthService:
     return AuthService(user_repo)

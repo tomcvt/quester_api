@@ -51,17 +51,12 @@ class AuthService:
                 fcm_token=''
             )
     
-    async def register_user(self, request: RegistrationRequest) -> RegistrationResponse:
+    async def register_user(self, request: RegistrationRequest) -> User:
         existing_user = await self.user_repo.get_user_by_installation_id(request.installation_id)
         if existing_user:
             #raise UserAlreadyExistsException("User with this installation ID already exists")
             #for simplicty we will return the existing user details now
-            return RegistrationResponse(
-                session_token="mock_session_token",
-                api_key=existing_user.api_key_hash, #TODO handle this
-                username=existing_user.username,
-                public_id=existing_user.public_id
-            )
+            return existing_user
         api_key=gen_utils.generate_safe_api_key(request.password) #TODO: implement proper hashing
         api_key_hash = api_key #TODO: hash the api key before storing
         new_user = NewUser(
@@ -71,11 +66,6 @@ class AuthService:
             username=request.username,
         )
         created_user = await self.user_repo.create_user(User.new(new_user))
-        return RegistrationResponse(
-            session_token="mock_session_token",
-            api_key=api_key,
-            username=created_user.username,
-            public_id=created_user.public_id
-        )
+        return created_user
         
     

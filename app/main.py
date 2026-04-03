@@ -15,6 +15,7 @@ from app.routers.user_router import router as user_router
 from app.routers.auth_router import router as auth_router
 from app.core.config import settings
 from app.core.firebase import firebase_lifespan
+from app.dev.dev_data_seeder import dev_data_seeder_lifespan
 
 
 class InterceptHandler(logging.Handler):
@@ -29,7 +30,8 @@ async def lifespan(app: FastAPI):
     #startup
     async with db_lifespan(app):
         async with firebase_lifespan(app):
-            yield
+            async with dev_data_seeder_lifespan(app):
+                yield
 
 app = FastAPI(title="Quester API", version="0.1.0", lifespan=lifespan)
 

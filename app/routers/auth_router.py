@@ -23,6 +23,13 @@ async def register(
     body: RegistrationRequest,
     service: AuthService = Depends(get_auth_service)
 ):
-    response = await service.register_user(body)
+    #response = await service.register_user(body)
+    newUser = await service.register_user(body)
+    response = RegistrationResponse(
+        session_token="mock_session_token",
+        username=newUser.username,
+        api_key=newUser.api_key_hash if newUser.api_key_hash else '',
+        public_id=newUser.public_id if newUser.public_id else None
+    )
     logger.info("User registered successfully: {}", response.username)
     return response

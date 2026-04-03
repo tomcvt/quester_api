@@ -1,5 +1,7 @@
 
 
+from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
@@ -77,3 +79,10 @@ class UserRepository:
             if "UNIQUE constraint failed: users.username" in str(e):
                 raise UserAlreadyExistsException("A user with this username already exists.")
             raise e
+    
+    async def get_users_by_public_ids(self, public_ids: list[UUID]) -> list[User]:
+        result = await self.db.execute(
+            select(User).where(User.public_id.in_(public_ids))
+        )
+        #return [user for user in result.scalars().all()]
+        return list(result.scalars().all())

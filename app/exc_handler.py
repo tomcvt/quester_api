@@ -30,6 +30,18 @@ def register_exception_handlers(app):
     async def invalid_credentials_exception_handler(request: Request, exc: exceptions.InvalidCredentialsException):
         return JSONResponse(status_code=401, content={"detail": str(exc)})
     
+    @app.exception_handler(exceptions.UserAlreadyExistsException)
+    async def user_already_exists_exception_handler(request: Request, exc: exceptions.UserAlreadyExistsException):
+        return JSONResponse(status_code=409, content={"detail": str(exc)})
+    
+    @app.exception_handler(exceptions.UserNotFoundException)
+    async def user_not_found_exception_handler(request: Request, exc: exceptions.UserNotFoundException):
+        return JSONResponse(status_code=404, content={"detail": str(exc)})
+    
+    @app.exception_handler(exceptions.ForbiddenException)
+    async def forbidden_exception_handler(request: Request, exc: exceptions.ForbiddenException):
+        return JSONResponse(status_code=403, content={"detail": str(exc)})
+    
     @app.exception_handler(ValueError)
     async def value_error_exception_handler(request: Request, exc: ValueError):
         return JSONResponse(status_code=400, content={"detail": str(exc)})
