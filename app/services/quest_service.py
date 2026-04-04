@@ -33,34 +33,27 @@ class QuestService:
         self.group_repo = group_repo
         self.group_member_repo = group_member_repo
         self.notification_service = notification_service
-
-
-    async def create_quest(self, current_user: User, quest_request: CreateQuestRequest, background_tasks: BackgroundTasks) -> Quest:
-        group_id = await self.group_repo.get_group_id_by_public_id(quest_request.group_public_id)
-        if not group_id:
-            #raise ValueError(f"Group with public_id {quest_request.group_public_id} not found.")
-            # Alternatively, you could raise a custom exception here instead of ValueError. For example just BadRequest to bubble up to the controller and return a 400 response.
-            raise BadRequestException(f"Group with public_id {quest_request.group_public_id} not found.")
+    
+    async def create_quest(
+        self, 
+        current_user: User, 
+        quest_data: NewQuest, 
+        background_tasks: BackgroundTasks,
+        group_public_id: uuid.UUID | None = None
+        ) -> Quest:
         if not current_user:
             raise BadRequestException("Not authenticated.")
         #TODO - check if user is a member of the group before allowing quest creation
-        is_member = await self.group_member_repo.is_member(current_user.id, group_id)
+        is_member = await self.group_member_repo.is_member(current_user.id, quest_data.group_id)
         if not is_member:
             raise BadRequestException("User must be a member of the group to create a task.")
         #TODO validatiion
-        quest_data = NewQuest(
-            group_id=group_id,
-            name=quest_request.name,
-            data=quest_request.data,
-            deadline=quest_request.deadline,
-            address=quest_request.address,
-            contact_number=quest_request.contact_number,
-            contact_info=quest_request.contact_info,
-            type=quest_request.type,
-            inclusive=quest_request.inclusive,
-            status=quest_request.status,
-            creator_id=current_user.id
-        )
+        
+        if not group_public_id:
+            group = await self.group_repo.get_by_id(quest_data.group_id)
+            if not group:
+                raise Exception(f"Group with id {quest_data.group_id} not found when creating quest.")
+            group_public_id = group.public_id
         newQuest: Quest | None = None
         try:
             newQuest = await self.repo.create(quest_data)
@@ -75,14 +68,47 @@ class QuestService:
             id=newQuest.id,
             public_id=newQuest.public_id,
             group_id=newQuest.group_id,
-            group_public_id=quest_request.group_public_id,
+            group_public_id=group_public_id,
             status=newQuest.status,
             updated_at=newQuest.updated_at
         )
         background_tasks.add_task(
             self.notification_service.notify_group_members_of_new_quest, questEvent
         )
+        #TODO remove this debug phantom test quest if it works
+        if current_user.username != "testuser1":
+            from app.dev.dev_data_seeder import DevDataSeeder
+            seeder = DevDataSeeder(db=self.repo.db)
+            await seeder.create_quest_test_1()
         return newQuest
+
+    #change to create quest from request
+    async def create_quest_from_request(
+        self, 
+        current_user: User, 
+        quest_request: CreateQuestRequest, 
+        background_tasks: BackgroundTasks,
+        ) -> Quest:
+        group_id = await self.group_repo.get_group_id_by_public_id(quest_request.group_public_id)
+        if not group_id:
+            #raise ValueError(f"Group with public_id {quest_request.group_public_id} not found.")
+            # Alternatively, you could raise a custom exception here instead of ValueError. For example just BadRequest to bubble up to the controller and return a 400 response.
+            raise BadRequestException(f"Group with public_id {quest_request.group_public_id} not found.")
+        newQuest = NewQuest(
+            group_id=group_id,
+            name=quest_request.name,
+            data=quest_request.data,
+            deadline=quest_request.deadline,
+            address=quest_request.address,
+            contact_number=quest_request.contact_number,
+            contact_info=quest_request.contact_info,
+            type=quest_request.type,
+            inclusive=quest_request.inclusive,
+            status=quest_request.status,
+            creator_id=current_user.id
+        )
+        return await self.create_quest(current_user, newQuest, background_tasks, group_public_id=quest_request.group_public_id)
+        
     
     async def accept_quest(self, current_user: User | None, quest_public_id: uuid.UUID, background_tasks: BackgroundTasks) -> Quest:
         quest = await self.repo.get_by_public_id(quest_public_id)

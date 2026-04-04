@@ -1,10 +1,13 @@
 
 
-from fastapi import FastAPI
+from fastapi import BackgroundTasks, FastAPI
 from fastapi.concurrency import asynccontextmanager
 from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
 
+from app.models.group import Group
+from app.models.quest import NewQuest, QuestStatus, QuestType
+from app.models.user import User
 from app.repositories.group_member_repository import GroupMemberRepository
 from app.repositories.group_repository import GroupRepository
 from app.repositories.quest_repository import QuestRepository
@@ -74,6 +77,38 @@ class DevDataSeeder:
         )
         logger.info(f"Created group: {group.name} with public_id: {group.public_id}")
         logger.info(f"User {user1.username} and {user2.username} joined the group {group.name}")
+    
+    async def create_quest_for_testing(self, creator_user: User, group: Group, background_tasks: BackgroundTasks):
+        new_quest = NewQuest(
+            group_id=group.id,
+            name="Test Quest",
+            data="This is a test quest.",
+            deadline=None,
+            address=None,
+            contact_number=None,
+            contact_info=None,
+            type=QuestType.JOB,
+            inclusive=False,
+            status=QuestStatus.STARTED,
+            creator_id=creator_user.id
+        )
+        quest = await self.quest_service.create_quest(creator_user, new_quest, background_tasks)
+        logger.info(f"Created quest: {quest.name} with public_id: {quest.public_id} in group {group.name}")
+    
+    async def create_quest_test_1(self):
+        users1 = await self.user_repo.get_users_by_username("testuser1")
+        user1 = users1[0] if users1 else None
+        if not user1:
+            logger.error("User testuser1 not found for quest creation.")
+            return
+        group = await self.group_repo.get_by_name("PartyTest")
+        if not group:
+            logger.error("Group PartyTest not found for quest creation.")
+            return
+        bt = BackgroundTasks()
+        await self.create_quest_for_testing(user1, group, bt)
+        await bt()
+        
         
 
 

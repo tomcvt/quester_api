@@ -19,7 +19,7 @@ async def create_quest(
     service: QuestService = Depends(get_quest_service),
     user_service = Depends(get_user_service)
 ):
-    quest: Quest = await service.create_quest(current_user, body, background_tasks)
+    quest: Quest = await service.create_quest_from_request(current_user, body, background_tasks)
     creator_user: User | None = await user_service.get_user_by_id(quest.creator_id) if quest.creator_id else None
     if not creator_user:
         logger.error(f"Creator with id {quest.creator_id} not found when creating quest response.")
