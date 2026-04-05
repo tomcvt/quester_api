@@ -48,6 +48,37 @@ class QuestRepository:
             await self.db.rollback()
             raise
     
+    async def complete_quest(self, quest_id: int, user_id: int) -> bool:
+        """
+        Attempt to complete a quest by setting status to COMPLETED if accepted_by_id matches user_id and status is ACCEPTED.
+        Returns True if the quest was completed, False otherwise.
+        """
+        try:
+            stm = (
+                update(Quest)
+                .where(
+                    Quest.id == quest_id,
+                    Quest.accepted_by_id == user_id,
+                    Quest.status == QuestStatus.ACCEPTED
+                )
+                .values(status=QuestStatus.COMPLETED, updated_at=datetime.now())
+                .execution_options(synchronize_session=False)
+            )
+            result = await self.db.execute(stm)
+            await self.db.commit()
+            rowcount = getattr(result, 'rowcount', None)
+            logger.info(f"Complete quest update result: {result}, rowcount: {rowcount}")
+            if rowcount is None and hasattr(result, '_real_result'):
+                rowcount = getattr(result._real_result, 'rowcount', None)
+                logger.info(f"Complete quest real result rowcount: {rowcount}")
+            if rowcount is None:
+                rowcount = 0
+                logger.warning("Could not determine rowcount from result, defaulting to 0.")
+            return rowcount > 0
+        except IntegrityError:
+            await self.db.rollback()
+            raise
+    
     async def create(self, quest_data: NewQuest) -> Quest:
         quest = Quest.new(quest_data)
         self.db.add(quest)

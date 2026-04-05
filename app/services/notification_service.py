@@ -123,5 +123,32 @@ class NotificationService:
                 logger.info(f"FCM YOUR_QUEST_TAKEN sent to creator {creator.username} for quest {quest.name}")
             except Exception as e:
                 logger.error(f"Failed to send YOUR_QUEST_TAKEN to creator {creator.username} for quest {quest.name}: {str(e)}")
-                
-        
+    
+    #TODO import in client
+    async def notify_creator_of_completed_quest(self, questEvent: QuestUpdateEvent):
+        quest = await self.quest_repo.get(questEvent.id)
+        if not quest:
+            logger.error(f"Quest with id {questEvent.id} not found for notification.")
+            return
+        creator = await self.user_repo.get_user_by_id(quest.creator_id)
+        if not creator:
+            logger.error(f"Creator with id {quest.creator_id} not found for notification.")
+            return
+        if not creator.fcm_token or creator.fcm_token.strip() == '':
+            logger.warning(f"Creator {creator.username} does not have a valid FCM token. Cannot send completed quest notification.")
+            return
+        message = messaging.Message(
+            token=creator.fcm_token,
+            data={
+                'type': 'YOUR_QUEST_COMPLETED',
+                'group_public_id': str(questEvent.group_public_id),
+                'quest_public_id': str(questEvent.public_id),
+                'accepted_by_public_id': str(questEvent.accepted_by_public_id) if questEvent.accepted_by_public_id else '',
+            },
+            android=self._make_android_config(),
+        )
+        try:
+            messaging.send(message)
+            logger.info(f"FCM YOUR_QUEST_COMPLETED sent to creator {creator.username} for quest {quest.name}")
+        except Exception as e:
+            logger.error(f"Failed to send YOUR_QUEST_COMPLETED to creator {creator.username} for quest {quest.name}: {str(e)}")

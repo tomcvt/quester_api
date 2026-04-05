@@ -81,6 +81,8 @@ class QuestService:
             seeder = DevDataSeeder(db=self.repo.db)
             await seeder.create_quest_test_1()
         return newQuest
+    
+    
 
     #change to create quest from request
     async def create_quest_from_request(
@@ -108,12 +110,51 @@ class QuestService:
             creator_id=current_user.id
         )
         return await self.create_quest(current_user, newQuest, background_tasks, group_public_id=quest_request.group_public_id)
-        
+    
+    async def complete_quest(self, current_user: User | None, quest_public_id: uuid.UUID, background_tasks: BackgroundTasks) -> Quest:
+        quest = await self.repo.get_by_public_id(quest_public_id)
+        if not quest:
+            raise BadRequestException("Quest not found.")
+        if not current_user:
+            raise UnauthorizedException("Not authenticated.")
+        if quest.accepted_by_id != current_user.id:
+            raise BadRequestException("User must be the one who accepted the task to complete it.")
+        group = await self.group_repo.get_by_id(quest.group_id)
+        if not group:
+            raise BadRequestException("Group not found for the quest.")
+        is_member = await self.group_member_repo.is_member(current_user.id, group.id)
+        if not is_member:
+            raise BadRequestException("User must be a member of the group to complete a task.")
+        try:
+            completed = await self.repo.complete_quest(quest.id, current_user.id)
+            if not completed:
+                raise BadRequestException("Failed to complete quest. It may have already been completed or its status may have changed.")
+            else:
+                logger.info(f"Quest completed: {quest_public_id} by user {current_user.public_id}")
+        except IntegrityError:
+            raise
+        updated_quest = await self.repo.get_by_public_id(quest_public_id)
+        if not updated_quest:
+            raise Exception("Failed to retrieve updated quest after completing.")
+        questEvent = QuestUpdateEvent(
+            id=updated_quest.id,
+            public_id=updated_quest.public_id,
+            group_id=updated_quest.group_id,
+            group_public_id=group.public_id,
+            status=updated_quest.status,
+            updated_at=updated_quest.updated_at,
+            accepted_by_public_id=current_user.public_id
+        )
+        background_tasks.add_task(
+            self.notification_service.notify_creator_of_completed_quest, questEvent
+        )
+
+        return updated_quest
     
     async def accept_quest(self, current_user: User | None, quest_public_id: uuid.UUID, background_tasks: BackgroundTasks) -> Quest:
         quest = await self.repo.get_by_public_id(quest_public_id)
         if not quest:
-            raise BadRequestException(f"Quest not found.")
+            raise BadRequestException("Quest not found.")
         if not current_user:
             raise UnauthorizedException("Not authenticated.")
         if quest.accepted_by_id:

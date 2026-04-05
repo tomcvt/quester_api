@@ -46,6 +46,16 @@ async def accept_quest(
     if not updated_quest:
         raise Exception("Failed to accept quest.")
     
+@router.post("/{quest_public_id}/complete", status_code=200)
+async def complete_quest(
+    quest_public_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    service: QuestService = Depends(get_quest_service)
+):
+    updated_quest = await service.complete_quest(current_user, quest_public_id, background_tasks)
+    if not updated_quest:
+        raise Exception("Failed to complete quest.")
 
 @router.get("/{quest_public_id}", response_model=CreateQuestResponse)
 async def get_quest(
