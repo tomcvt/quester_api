@@ -1,5 +1,7 @@
 
 
+import uuid
+
 from fastapi import BackgroundTasks, FastAPI
 from fastapi.concurrency import asynccontextmanager
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -46,17 +48,22 @@ class DevDataSeeder:
             self.gm_repo, 
             self.notification_service # no need for notification service in seeding
         )
+    
+    uuidNIL13 = uuid.UUID('00000000-0000-0000-0000-000000000013')
+    uuidNIL14 = uuid.UUID('00000000-0000-0000-0000-000000000014')
 
     async def seed(self):
         # Implement your data seeding logic here
         # i will implement later using services
         registration_request_1 = RegistrationRequest(
-            installation_id="test_installation_1",
+            device_id="test_device_1",
+            installation_id=str(self.uuidNIL13),
             username="testuser1",
             password="",
         )
         registration_request_2 = RegistrationRequest(
-            installation_id="test_installation_2",
+            device_id="test_device_2",
+            installation_id=str(self.uuidNIL14),
             username="testuser2",
             password="",
         )
