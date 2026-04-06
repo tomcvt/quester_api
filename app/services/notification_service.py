@@ -1,5 +1,6 @@
 
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 from loguru import logger
 
@@ -67,7 +68,8 @@ class NotificationService:
         )
         try:
             loop = asyncio.get_event_loop()
-            response = await loop.run_in_executor(None, messaging.send_each_for_multicast, message)
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                response = await loop.run_in_executor(executor, messaging.send_each_for_multicast, message)
             logger.info("FCM quest_created sent: {} success, {} fail",
                 response.success_count, response.failure_count)
         except Exception as e:
@@ -106,7 +108,8 @@ class NotificationService:
         )
         try:
             loop = asyncio.get_event_loop()
-            response = await loop.run_in_executor(None, messaging.send_each_for_multicast, message)
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                response = await loop.run_in_executor(executor, messaging.send_each_for_multicast, message)
             logger.info("FCM quest_taken sent: {} success, {} fail",
                 response.success_count, response.failure_count)
         except Exception as e:
@@ -124,7 +127,8 @@ class NotificationService:
             )
             try:
                 loop = asyncio.get_event_loop()
-                await loop.run_in_executor(None, messaging.send, personal_message)
+                with ThreadPoolExecutor(max_workers=1) as executor:
+                    await loop.run_in_executor(executor, messaging.send, personal_message)
                 logger.info(f"FCM YOUR_QUEST_TAKEN sent to creator {creator.username} for quest {quest.name}")
             except Exception as e:
                 logger.error(f"Failed to send YOUR_QUEST_TAKEN to creator {creator.username} for quest {quest.name}: {str(e)}")
@@ -154,7 +158,8 @@ class NotificationService:
         )
         try:
             loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, messaging.send, message)
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                await loop.run_in_executor(executor, messaging.send, message)
             logger.info(f"FCM YOUR_QUEST_COMPLETED sent to creator {creator.username} for quest {quest.name}")
         except Exception as e:
             logger.error(f"Failed to send YOUR_QUEST_COMPLETED to creator {creator.username} for quest {quest.name}: {str(e)}")
