@@ -103,3 +103,12 @@ class GroupMemberRepository:
         )
         member = result.scalars().first()
         return member is not None
+    
+    async def get_member(self, user_id: int, group_id: int) -> GroupMember | None:
+        result = await self.db.execute(
+            select(GroupMember).where(
+                GroupMember.group_id == group_id,
+                GroupMember.user_id == user_id
+            )
+        )
+        return result.scalars().first()

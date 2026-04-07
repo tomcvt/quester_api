@@ -50,7 +50,8 @@ class Quest(Base):
             public_id=uuid.uuid4(),
             data=quest.data,
             contact_info=quest.contact_info,
-            deadline=quest.deadline,
+            deadline_start=quest.deadline_start,
+            deadline_end=quest.deadline_end,
             address=quest.address,
             contact_number=quest.contact_number,
             type=quest.type,
@@ -64,11 +65,14 @@ class Quest(Base):
     group_id: Mapped[int] = mapped_column(ForeignKey("groups.id"), nullable=False)
     public_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True, native_uuid=False), default=uuid.uuid4, unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    data: Mapped[str] = mapped_column(String, nullable=True)  # JSON string or any other relevant data
-    deadline: Mapped[str] = mapped_column(String, nullable=True)
+    description: Mapped[str] = mapped_column(String, nullable=True)  # JSON string or any other relevant data
+    date: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    deadline_start: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    deadline_end: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     address: Mapped[str] = mapped_column(String, nullable=True)
     contact_number: Mapped[str] = mapped_column(String, nullable=True)
     contact_info: Mapped[str] = mapped_column(String, nullable=True)  # Optional field for contact info
+    data: Mapped[str] = mapped_column(String, nullable=True)  # Optional field for any additional data
     type: Mapped[QuestType] = mapped_column(Enum(QuestType), nullable=False)
     inclusive: Mapped[bool] = mapped_column(Boolean, nullable=False)
     status: Mapped[QuestStatus] = mapped_column(Enum(QuestStatus), nullable=False)
@@ -86,18 +90,21 @@ class Quest(Base):
     )
     
     def __repr__(self):
-        return f"<Quest(id={self.id}, group_id={self.group_id}, public_id={self.public_id}, name='{self.name}', type={self.type}, status={self.status})>"
+        return f"<Quest(id={self.id}, public_id={self.public_id}, name='{self.name}', group_id={self.group_id}, creator_id={self.creator_id})>"
 
 class QuestX(BaseModel):
     id: int
     group_id: int
     public_id: uuid.UUID
     name: str
-    data: str | None
-    deadline: str | None
+    description: str | None
+    date: datetime | None
+    deadline_start: datetime | None
+    deadline_end: datetime | None
     address: str | None
     contact_number: str | None
     contact_info: str | None
+    data: str | None
     type: QuestType
     inclusive: bool
     status: QuestStatus
@@ -113,7 +120,10 @@ class QuestX(BaseModel):
             group_id=quest.group_id,
             public_id=quest.public_id,
             name=quest.name,
-            deadline=quest.deadline,
+            description=quest.description,
+            date=quest.date,
+            deadline_start=quest.deadline_start,
+            deadline_end=quest.deadline_end,
             address=quest.address,
             contact_number=quest.contact_number,
             data=quest.data,
@@ -131,11 +141,14 @@ class QuestX(BaseModel):
 class NewQuest:
     group_id: int
     name: str
-    data: str | None
-    deadline: str | None
+    description: str | None
+    date: datetime | None
+    deadline_start: datetime | None 
+    deadline_end: datetime | None
     address: str | None
     contact_number: str | None
     contact_info: str | None
+    data: str | None
     type: QuestType
     inclusive: bool
     status: QuestStatus
@@ -144,11 +157,14 @@ class NewQuest:
 
 class UpdateQuest(BaseModel):
     name: str | None = None
-    data: str | None = None
-    deadline: str | None = None
+    description: str | None = None
+    date: datetime | None = None
+    deadline_start: datetime | None = None
+    deadline_end: datetime | None = None
     address: str | None = None
     contact_number: str | None = None
     contact_info: str | None = None
+    data: str | None = None
     type: QuestType | None = None
     inclusive: bool | None = None
     status: QuestStatus | None = None

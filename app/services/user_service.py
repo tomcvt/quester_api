@@ -22,6 +22,11 @@ class UserService:
         self.validate_username(new_username)
         return await self.repo.change_username(current_user.id, new_username)
     
+    async def change_phone_number(self, current_user: User | None, new_phone_number: str) -> User:
+        if not current_user:
+            raise ForbiddenException("You must be logged in to change your phone number.")
+        return await self.repo.change_phone_number(current_user.id, new_phone_number)
+    
     def validate_username(self, username: str):
         # regex for allowed characters: letters, numbers, underscores, and hyphens 3-20
         if not username or len(username) < 3:

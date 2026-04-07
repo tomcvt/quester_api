@@ -76,8 +76,9 @@ async def get_quest(
 @router.delete("/{quest_public_id}", status_code=204)
 async def delete_quest(
     quest_public_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
     current_user: User | None = Depends(get_current_user),
     service: QuestService = Depends(get_quest_service)
 ):
-    await service.delete_quest_by_public_id(current_user, quest_public_id)
+    await service.delete_quest_by_public_id(current_user, quest_public_id, background_tasks)
     return

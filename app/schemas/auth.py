@@ -24,6 +24,7 @@ class RegistrationRequest(BaseModel):
     device_id: str | None = None
     installation_id: str
     username: str | None = None
+    phone_number: str | None = None
     password: str
 
 class RegistrationResponse(BaseModel):
@@ -34,3 +35,6 @@ class RegistrationResponse(BaseModel):
 
 class ChangeUsernameRequest(BaseModel):
     username: str
+
+class ChangePhoneNumberRequest(BaseModel):
+    phone_number: str

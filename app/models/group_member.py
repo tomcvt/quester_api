@@ -9,6 +9,7 @@ from app.models.base import Base
 
 class MemberRole(enum.Enum):
     OWNER = "OWNER"
+    ADMIN = "ADMIN"
     MEMBER = "MEMBER"
 
 class GroupMember(Base):

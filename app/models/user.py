@@ -18,6 +18,7 @@ class User(Base):
             device_id=user.device_id,
             installation_id=user.installation_id,
             username=user.username,
+            phone_number=user.phone_number,
             public_id=uuid.uuid4(),
             fcm_token=user.fcm_token,
             api_key_hash=user.api_key_hash
@@ -27,6 +28,7 @@ class User(Base):
     device_id: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     installation_id: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     username: Mapped[str] = mapped_column(String, nullable=True)
+    phone_number: Mapped[str] = mapped_column(String, nullable=True)
     public_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True, native_uuid=False), unique=True, nullable=False)
     api_key_hash: Mapped[str] = mapped_column(String, nullable=True)
     session_token: Mapped[str] = mapped_column(String, nullable=True)
@@ -44,6 +46,7 @@ class UserX(BaseModel):
     device_id: str
     installation_id: str
     username: str | None
+    phone_number: str | None
     public_id: uuid.UUID
     api_key_hash: str | None
     session_token: str | None
@@ -58,6 +61,7 @@ class UserX(BaseModel):
             device_id=user.device_id,
             installation_id=user.installation_id,
             username=user.username,
+            phone_number=user.phone_number,
             public_id=user.public_id,
             api_key_hash=user.api_key_hash,
             session_token=user.session_token,
@@ -71,6 +75,7 @@ class NewUser:
     device_id: str
     installation_id: str
     username: str | None = None
+    phone_number: str | None = None
     fcm_token: str | None = None
     api_key_hash: str | None = None
     session_token: str | None = None

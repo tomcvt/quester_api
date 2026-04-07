@@ -86,6 +86,16 @@ class UserRepository:
                 raise UserAlreadyExistsException("A user with this username already exists.")
             raise e
     
+    async def change_phone_number(self, user_id: int, new_phone_number: str) -> User:
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            raise ValueError("User not found")
+        user.phone_number = new_phone_number
+        self.db.add(user)
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user
+    
     async def get_users_by_public_ids(self, public_ids: list[UUID]) -> list[User]:
         result = await self.db.execute(
             select(User).where(User.public_id.in_(public_ids))

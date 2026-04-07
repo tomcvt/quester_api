@@ -1,5 +1,6 @@
 
 
+from datetime import datetime, timedelta
 import uuid
 
 from fastapi import BackgroundTasks, FastAPI
@@ -60,12 +61,14 @@ class DevDataSeeder:
             installation_id=str(self.uuidNIL13),
             username="testuser1",
             password="",
+            phone_number="1234567890"
         )
         registration_request_2 = RegistrationRequest(
             device_id="test_device_2",
             installation_id=str(self.uuidNIL14),
             username="testuser2",
             password="",
+            phone_number="0987654321"
         )
         user1 = await self.auth_service.register_user(registration_request_1)
         user2 = await self.auth_service.register_user(registration_request_2)
@@ -89,11 +92,14 @@ class DevDataSeeder:
         new_quest = NewQuest(
             group_id=group.id,
             name="Test Quest",
-            data="This is a test quest.",
-            deadline=None,
+            description="This is a test quest.",
+            date=datetime.utcnow(),
+            deadline_start=datetime.utcnow() + timedelta(minutes=2),
+            deadline_end=datetime.utcnow() + timedelta(minutes=10),
             address=None,
             contact_number=None,
             contact_info=None,
+            data=None,
             type=QuestType.JOB,
             inclusive=False,
             status=QuestStatus.STARTED,

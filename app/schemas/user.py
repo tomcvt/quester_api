@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict
 
 class UserDto(BaseModel):
     username: str | None
+    phone_number: str | None
     public_id: uuid.UUID
     
     model_config = ConfigDict(from_attributes=True)

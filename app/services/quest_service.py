@@ -8,6 +8,7 @@ from fastapi import BackgroundTasks
 from sqlalchemy import CursorResult, Result, update
 from sqlalchemy.exc import IntegrityError
 from app.exceptions import BadRequestException, UnauthorizedException
+from app.models.group_member import MemberRole
 from app.models.user import User
 from app.models.quest import Quest, NewQuest, QuestStatus, UpdateQuest
 from app.repositories.group_member_repository import GroupMemberRepository
@@ -99,11 +100,14 @@ class QuestService:
         newQuest = NewQuest(
             group_id=group_id,
             name=quest_request.name,
-            data=quest_request.data,
-            deadline=quest_request.deadline,
+            description=quest_request.description,
+            date=quest_request.date,
+            deadline_start=quest_request.deadline_start,
+            deadline_end=quest_request.deadline_end,
             address=quest_request.address,
             contact_number=quest_request.contact_number,
             contact_info=quest_request.contact_info,
+            data=quest_request.data,
             type=quest_request.type,
             inclusive=quest_request.inclusive,
             status=quest_request.status,
@@ -143,7 +147,8 @@ class QuestService:
             group_public_id=group.public_id,
             status=updated_quest.status,
             updated_at=updated_quest.updated_at,
-            accepted_by_public_id=current_user.public_id
+            accepted_by_public_id=current_user.public_id,
+            source_user_public_id=current_user.public_id
         )
         background_tasks.add_task(
             self.notification_service.notify_creator_of_completed_quest, questEvent
@@ -177,6 +182,7 @@ class QuestService:
         updated_quest = await self.repo.get_by_public_id(quest_public_id)
         if not updated_quest:
             raise Exception("Failed to retrieve updated quest after accepting.")
+        logger.info(f"Current user {current_user.public_id} accepted quest {quest_public_id}. Updated quest status: {updated_quest.status}")
         questEvent = QuestUpdateEvent(
             id=updated_quest.id,
             public_id=updated_quest.public_id,
@@ -184,20 +190,40 @@ class QuestService:
             group_public_id=group.public_id,
             status=updated_quest.status,
             updated_at=updated_quest.updated_at,
-            accepted_by_public_id=current_user.public_id
+            accepted_by_public_id=current_user.public_id,
+            source_user_public_id=current_user.public_id
         )
         background_tasks.add_task(
             self.notification_service.notify_group_members_of_taken_quest, questEvent
         )
         return updated_quest
     
-    async def delete_quest_by_public_id(self, current_user: User | None, quest_public_id: uuid.UUID):
+    async def delete_quest_by_public_id(self, current_user: User | None, quest_public_id: uuid.UUID, background_tasks: BackgroundTasks):
         quest = await self.repo.get_by_public_id(quest_public_id)
         if not quest:
             raise BadRequestException(f"Quest not found.")
         if not current_user:
             raise UnauthorizedException("Not authenticated.")
-        if quest.creator_id != current_user.id:
-            raise BadRequestException("User must be the creator of the task to delete it.")
+        group = await self.group_repo.get_by_id(quest.group_id)
+        if not group:
+            raise BadRequestException("Group not found for the quest.")
+        current_member = await self.group_member_repo.get_member(current_user.id, quest.group_id)
+        if not current_member:
+            raise BadRequestException("User must be a member of the group to delete a task.")
+        if quest.creator_id != current_user.id and current_member.role != MemberRole.ADMIN and current_member.role != MemberRole.OWNER:
+            raise BadRequestException("You are not authorized to delete this task. Only the creator, group admins or owners can delete a task.")
         await self.repo.delete(quest.id)
-    
+        logger.info(f"Quest deleted: {quest_public_id} by user {current_user.public_id}")
+        questEvent = QuestUpdateEvent(
+            id=quest.id,
+            public_id=quest.public_id,
+            group_id=quest.group_id,
+            group_public_id=group.public_id,
+            status=QuestStatus.DELETED,
+            updated_at=datetime.utcnow(),
+            accepted_by_public_id=None,
+            source_user_public_id=current_user.public_id
+        )
+        background_tasks.add_task(
+            self.notification_service.notify_group_members_of_deleted_quest, questEvent
+        )

@@ -40,7 +40,7 @@ class NotificationService:
             logger.error(f"Creator with id {quest.creator_id} not found for notification.")
             return
         questX = QuestX.from_orm(quest)
-        valid_tokens = [member.user.fcm_token for member in gm_w_user_details if member.user.fcm_token]
+        valid_tokens = [member.user.fcm_token for member in gm_w_user_details if member.user.fcm_token and member.user.public_id != questEvent.source_user_public_id]
         skipped_users = [
             member.user.username if member.user.username else 'Unknown' for member in gm_w_user_details 
             if not member.user.fcm_token or member.user.fcm_token.strip() == ''
@@ -86,7 +86,7 @@ class NotificationService:
             logger.error(f"Creator with id {quest.creator_id} not found for notification.")
             return
         #questX = QuestX.from_orm(quest)
-        valid_tokens = [member.user.fcm_token for member in gm_w_user_details if member.user.fcm_token]
+        valid_tokens = [member.user.fcm_token for member in gm_w_user_details if member.user.fcm_token and member.user.public_id != questEvent.source_user_public_id]
         skipped_users = [
             member.user.username if member.user.username else 'Unknown' for member in gm_w_user_details 
             if not member.user.fcm_token or member.user.fcm_token.strip() == ''
@@ -163,3 +163,33 @@ class NotificationService:
             logger.info(f"FCM YOUR_QUEST_COMPLETED sent to creator {creator.username} for quest {quest.name}")
         except Exception as e:
             logger.error(f"Failed to send YOUR_QUEST_COMPLETED to creator {creator.username} for quest {quest.name}: {str(e)}")
+    
+    async def notify_group_members_of_deleted_quest(self, questEvent: QuestUpdateEvent):
+        gm_w_user_details = await self.gm_repo.fetch_group_members_w_details_by_group_id(questEvent.group_id)
+        valid_tokens = [member.user.fcm_token for member in gm_w_user_details if member.user.fcm_token and member.user.public_id != questEvent.source_user_public_id]
+        skipped_users = [
+            member.user.username if member.user.username else 'Unknown' for member in gm_w_user_details 
+            if not member.user.fcm_token or member.user.fcm_token.strip() == ''
+            ]
+        if skipped_users:
+            logger.warning(f"Skipping notification for users without valid FCM tokens: {', '.join(skipped_users)}")
+        if not valid_tokens:
+            logger.warning(f"No valid FCM tokens found for group_id {questEvent.group_id}. No notifications will be sent.")
+            return
+        message = messaging.MulticastMessage(
+            tokens=valid_tokens,
+            data={
+                'type': 'QUEST_DELETED',
+                'group_public_id': str(questEvent.group_public_id),
+                'quest_public_id': str(questEvent.public_id),
+            },
+            android=self._make_android_config(),
+        )
+        try:
+            loop = asyncio.get_event_loop()
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                response = await loop.run_in_executor(executor, messaging.send_each_for_multicast, message)
+            logger.info("FCM quest_deleted sent: {} success, {} fail",
+                response.success_count, response.failure_count)
+        except Exception as e:
+            logger.error(f"Failed to send quest_deleted notification: {str(e)}")

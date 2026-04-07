@@ -64,6 +64,7 @@ class AuthService:
             installation_id=request.installation_id,
             api_key_hash=api_key_hash,
             username=request.username,
+            phone_number=request.phone_number,
         )
         created_user = await self.user_repo.create_user(User.new(new_user))
         return created_user
