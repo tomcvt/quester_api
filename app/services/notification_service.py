@@ -10,7 +10,10 @@ from app.repositories.quest_repository import QuestRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.quest import QuestUpdateEvent
 from firebase_admin import messaging
-
+'''
+fix this
+ERROR    | app.services.notification_service:notify_group_members_of_new_quest:76 - Failed to send quest_created notification: Unknown error while making remote service calls: max_workers must be greater than 0
+'''
 
 class NotificationService:
     def __init__(
@@ -95,25 +98,25 @@ class NotificationService:
             logger.warning(f"Skipping notification for users without valid FCM tokens: {', '.join(skipped_users)}")
         if not valid_tokens:
             logger.warning(f"No valid FCM tokens found for group_id {questEvent.group_id}. No notifications will be sent.")
-            return
-        message = messaging.MulticastMessage(
-            tokens=valid_tokens,
-            data={
-                'type': 'QUEST_TAKEN',
-                'group_public_id': str(questEvent.group_public_id),
-                'quest_public_id': str(questEvent.public_id),
-                'accepted_by_public_id': str(questEvent.accepted_by_public_id) if questEvent.accepted_by_public_id else '',
-            },
-            android=self._make_android_config(),
-        )
-        try:
-            loop = asyncio.get_event_loop()
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                response = await loop.run_in_executor(executor, messaging.send_each_for_multicast, message)
-            logger.info("FCM quest_taken sent: {} success, {} fail",
-                response.success_count, response.failure_count)
-        except Exception as e:
-            logger.error(f"Failed to send quest_taken notification: {str(e)}")
+        else:
+            message = messaging.MulticastMessage(
+                tokens=valid_tokens,
+                data={
+                    'type': 'QUEST_TAKEN',
+                    'group_public_id': str(questEvent.group_public_id),
+                    'quest_public_id': str(questEvent.public_id),
+                    'accepted_by_public_id': str(questEvent.accepted_by_public_id) if questEvent.accepted_by_public_id else '',
+                },
+                android=self._make_android_config(),
+            )
+            try:
+                loop = asyncio.get_event_loop()
+                with ThreadPoolExecutor(max_workers=1) as executor:
+                    response = await loop.run_in_executor(executor, messaging.send_each_for_multicast, message)
+                logger.info("FCM quest_taken sent: {} success, {} fail",
+                    response.success_count, response.failure_count)
+            except Exception as e:
+                logger.error(f"Failed to send quest_taken notification: {str(e)}")
         if creator.fcm_token and creator.fcm_token.strip() != '':
             personal_message = messaging.Message(
                 token=creator.fcm_token,

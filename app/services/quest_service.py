@@ -14,7 +14,7 @@ from app.models.quest import Quest, NewQuest, QuestStatus, UpdateQuest
 from app.repositories.group_member_repository import GroupMemberRepository
 from app.repositories.group_repository import GroupRepository
 from app.repositories.quest_repository import QuestRepository
-from app.schemas.quest import CreateQuestRequest, QuestUpdateEvent
+from app.schemas.quest import CreateQuestRequest, QuestSyncDTO, QuestUpdateEvent
 from app.services.notification_service import NotificationService
 
 
@@ -35,11 +35,14 @@ class QuestService:
         self.group_member_repo = group_member_repo
         self.notification_service = notification_service
     
+    async def get_quest_dto_by_public_id(self, public_id: uuid.UUID) -> QuestSyncDTO | None:
+        return await self.repo.get_quest_dto_by_public_id(public_id)
+    
     async def create_quest(
         self, 
         current_user: User, 
         quest_data: NewQuest, 
-        background_tasks: BackgroundTasks,
+        background_tasks: BackgroundTasks | None = None,
         group_public_id: uuid.UUID | None = None
         ) -> Quest:
         if not current_user:
@@ -73,9 +76,12 @@ class QuestService:
             status=newQuest.status,
             updated_at=newQuest.updated_at
         )
-        background_tasks.add_task(
-            self.notification_service.notify_group_members_of_new_quest, questEvent
-        )
+        if background_tasks:
+            background_tasks.add_task(
+                self.notification_service.notify_group_members_of_new_quest, questEvent
+            )
+        else:
+            await self.notification_service.notify_group_members_of_new_quest(questEvent)
         #TODO remove this debug phantom test quest if it works
         if current_user.username != "testuser1":
             from app.dev.dev_data_seeder import DevDataSeeder
@@ -153,7 +159,6 @@ class QuestService:
         background_tasks.add_task(
             self.notification_service.notify_creator_of_completed_quest, questEvent
         )
-
         return updated_quest
     
     async def accept_quest(self, current_user: User | None, quest_public_id: uuid.UUID, background_tasks: BackgroundTasks) -> Quest:
@@ -167,7 +172,7 @@ class QuestService:
         group_id = quest.group_id
         group = await self.group_repo.get_by_id(group_id)
         if not group:
-            raise BadRequestException(f"Group not found for the quest.")
+            raise BadRequestException("Group not found for the quest.")
         is_member = await self.group_member_repo.is_member(current_user.id, group_id)
         if not is_member:
             raise BadRequestException("User must be a member of the group to accept a task.")
@@ -183,6 +188,7 @@ class QuestService:
         if not updated_quest:
             raise Exception("Failed to retrieve updated quest after accepting.")
         logger.info(f"Current user {current_user.public_id} accepted quest {quest_public_id}. Updated quest status: {updated_quest.status}")
+        logger.info(f"user id {current_user.id} updated quest accepted_by_id to {updated_quest.accepted_by_id}")
         questEvent = QuestUpdateEvent(
             id=updated_quest.id,
             public_id=updated_quest.public_id,
@@ -193,9 +199,12 @@ class QuestService:
             accepted_by_public_id=current_user.public_id,
             source_user_public_id=current_user.public_id
         )
-        background_tasks.add_task(
-            self.notification_service.notify_group_members_of_taken_quest, questEvent
-        )
+        if background_tasks:
+            background_tasks.add_task(
+                self.notification_service.notify_group_members_of_taken_quest, questEvent
+            )
+        else:
+            await self.notification_service.notify_group_members_of_taken_quest(questEvent)
         return updated_quest
     
     async def delete_quest_by_public_id(self, current_user: User | None, quest_public_id: uuid.UUID, background_tasks: BackgroundTasks):

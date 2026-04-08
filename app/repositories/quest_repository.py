@@ -9,7 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import quest
 from app.models.quest import NewQuest, Quest, UpdateQuest, QuestStatus
 from app.models.user import User
-from app.schemas.quest import QuestWithUserPId
+from app.models.group import Group
+from app.schemas.quest import QuestSyncDTO, QuestWithUserPId
 
 
 class QuestRepository:
@@ -146,4 +147,41 @@ class QuestRepository:
             )
             for quest, creator_public_id, accepter_public_id in result.all()
         ]
+    
+    async def get_quest_dto_by_public_id(self, public_id: uuid.UUID) -> QuestSyncDTO | None:
+        creator = aliased(User)
+        accepter = aliased(User)
+        group = aliased(Group)
+        result = await self.db.execute(
+            select(Quest, group.public_id, creator.public_id, accepter.public_id)
+            .join(group, group.id == Quest.group_id)
+            .join(creator, creator.id == Quest.creator_id)
+            .outerjoin(accepter, accepter.id == Quest.accepted_by_id)
+            .where(Quest.public_id == public_id)
+        )
+        row = result.first()
+        if not row:
+            return None
+        quest, group_public_id, creator_public_id, accepter_public_id = row
+        return QuestSyncDTO(
+            group_public_id=group_public_id,
+            public_id=quest.public_id,
+            name=quest.name,
+            description=quest.description,
+            date=quest.date,
+            deadline_start=quest.deadline_start,
+            deadline_end=quest.deadline_end,
+            address=quest.address,
+            contact_number=quest.contact_number,
+            contact_info=quest.contact_info,
+            data=quest.data,
+            type=quest.type,
+            inclusive=quest.inclusive,
+            status=quest.status,
+            creator_public_id=creator_public_id,
+            created_at=quest.created_at,
+            updated_at=quest.updated_at,
+            accepted_by_public_id=accepter_public_id
+        )
+
     

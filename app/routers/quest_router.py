@@ -35,7 +35,7 @@ async def create_quest(
     
     return response
 
-@router.post("/{quest_public_id}/accept", status_code=200)
+@router.post("/{quest_public_id}/accept", response_model=QuestSyncDTO, status_code=200)
 async def accept_quest(
     quest_public_id: uuid.UUID,
     background_tasks: BackgroundTasks,
@@ -45,6 +45,7 @@ async def accept_quest(
     updated_quest = await service.accept_quest(current_user, quest_public_id, background_tasks)
     if not updated_quest:
         raise Exception("Failed to accept quest.")
+    return await service.get_quest_dto_by_public_id(quest_public_id)
     
 @router.post("/{quest_public_id}/complete", status_code=200)
 async def complete_quest(
@@ -56,22 +57,18 @@ async def complete_quest(
     updated_quest = await service.complete_quest(current_user, quest_public_id, background_tasks)
     if not updated_quest:
         raise Exception("Failed to complete quest.")
+    return await service.get_quest_dto_by_public_id(quest_public_id)
 
-@router.get("/{quest_public_id}", response_model=CreateQuestResponse)
+@router.get("/{quest_public_id}", response_model=QuestSyncDTO, status_code=200)
 async def get_quest(
     quest_public_id: str,
     current_user: User | None = Depends(get_current_user),
     service: QuestService = Depends(get_quest_service)
 ):
-    try:
-        '''
-        quest = await service.get_quest_by_public_id(quest_public_id)
-        if not quest:
-            return {"error": "Quest not found"}
-        return quest
-        '''
-    except Exception as e:
-        return {"error": str(e)}
+    quest_dto = await service.get_quest_dto_by_public_id(uuid.UUID(quest_public_id))
+    if not quest_dto:
+        raise Exception("Quest not found.")
+    return quest_dto
 
 @router.delete("/{quest_public_id}", status_code=204)
 async def delete_quest(

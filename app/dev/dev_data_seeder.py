@@ -1,5 +1,6 @@
 
 
+import asyncio
 from datetime import datetime, timedelta
 import uuid
 
@@ -88,7 +89,7 @@ class DevDataSeeder:
         logger.info(f"Created group: {group.name} with public_id: {group.public_id}")
         logger.info(f"User {user1.username} and {user2.username} joined the group {group.name}")
     
-    async def create_quest_for_testing(self, creator_user: User, group: Group, background_tasks: BackgroundTasks):
+    async def create_quest_for_testing(self, creator_user: User, group: Group):
         new_quest = NewQuest(
             group_id=group.id,
             name="Test Quest",
@@ -105,7 +106,7 @@ class DevDataSeeder:
             status=QuestStatus.STARTED,
             creator_id=creator_user.id
         )
-        quest = await self.quest_service.create_quest(creator_user, new_quest, background_tasks)
+        quest = await self.quest_service.create_quest(creator_user, new_quest)
         logger.info(f"Created quest: {quest.name} with public_id: {quest.public_id} in group {group.name}")
     
     async def create_quest_test_1(self):
@@ -118,9 +119,7 @@ class DevDataSeeder:
         if not group:
             logger.error("Group PartyTest not found for quest creation.")
             return
-        bt = BackgroundTasks()
-        await self.create_quest_for_testing(user1, group, bt)
-        await bt()
+        await self.create_quest_for_testing(user1, group)
         
         
 
