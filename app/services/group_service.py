@@ -79,7 +79,8 @@ class GroupService:
                 status=quest.status,
                 creator_public_id=quest.creator_public_id,
                 created_at=quest.created_at,
-                updated_at=quest.updated_at
+                updated_at=quest.updated_at,
+                accepted_by_public_id=quest.accepted_by_public_id
             )
             for quest in quests
         ]

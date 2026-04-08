@@ -105,7 +105,7 @@ class NotificationService:
                     'type': 'QUEST_TAKEN',
                     'group_public_id': str(questEvent.group_public_id),
                     'quest_public_id': str(questEvent.public_id),
-                    'accepted_by_public_id': str(questEvent.accepted_by_public_id) if questEvent.accepted_by_public_id else '',
+                    'accepted_by_public_id': str(questEvent.accepted_by_public_id) if questEvent.accepted_by_public_id else None,
                 },
                 android=self._make_android_config(),
             )
@@ -124,7 +124,7 @@ class NotificationService:
                     'type': 'YOUR_QUEST_TAKEN',
                     'group_public_id': str(questEvent.group_public_id),
                     'quest_public_id': str(questEvent.public_id),
-                    'accepted_by_public_id': str(questEvent.accepted_by_public_id) if questEvent.accepted_by_public_id else '',
+                    'accepted_by_public_id': str(questEvent.accepted_by_public_id) if questEvent.accepted_by_public_id else None,
                 },
                 android=self._make_android_config(),
             )
@@ -155,7 +155,7 @@ class NotificationService:
                 'type': 'YOUR_QUEST_COMPLETED',
                 'group_public_id': str(questEvent.group_public_id),
                 'quest_public_id': str(questEvent.public_id),
-                'accepted_by_public_id': str(questEvent.accepted_by_public_id) if questEvent.accepted_by_public_id else '',
+                'accepted_by_public_id': str(questEvent.accepted_by_public_id) if questEvent.accepted_by_public_id else None,
             },
             android=self._make_android_config(),
         )

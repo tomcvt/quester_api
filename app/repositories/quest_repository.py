@@ -31,7 +31,7 @@ class QuestRepository:
                     Quest.status == QuestStatus.STARTED
                 )
                 .values(accepted_by_id=user_id, status=QuestStatus.ACCEPTED, updated_at=datetime.now())
-                .execution_options(synchronize_session=False)
+                .execution_options(synchronize_session="fetch")
             )
             result = await self.db.execute(stm)
             await self.db.commit()
@@ -63,7 +63,7 @@ class QuestRepository:
                     Quest.status == QuestStatus.ACCEPTED
                 )
                 .values(status=QuestStatus.COMPLETED, updated_at=datetime.now())
-                .execution_options(synchronize_session=False)
+                .execution_options(synchronize_session="fetch")
             )
             result = await self.db.execute(stm)
             await self.db.commit()
