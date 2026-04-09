@@ -1,5 +1,6 @@
 
 import re
+from uuid import UUID
 
 from app.exceptions import ForbiddenException
 from app.models.user import User
@@ -10,7 +11,7 @@ class UserService:
     def __init__(self, repo: UserRepository):
         self.repo = repo
     
-    async def get_user_by_public_id(self, public_id: str):
+    async def get_user_by_public_id(self, public_id: UUID):
         return await self.repo.get_user_by_public_id(public_id)
     
     async def get_user_by_id(self, id: int):

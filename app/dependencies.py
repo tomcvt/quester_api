@@ -31,8 +31,6 @@ def get_user_repository(db: AsyncSession = Depends(get_db)) -> UserRepository:
 
 
 
-def get_user_service(repo: UserRepository = Depends(get_user_repository)) -> UserService:
-    return UserService(repo)
 
 def get_notification_service(
     gm_repo = Depends(get_group_member_repository),
@@ -41,12 +39,17 @@ def get_notification_service(
 ) -> NotificationService:
     return NotificationService(gm_repo, user_repo, quest_repo)
 
+def get_user_service(repo: UserRepository = Depends(get_user_repository)) -> UserService:
+    return UserService(repo)
+
 def get_group_service(
     repo: GroupRepository = Depends(get_group_repository), 
     member_repo: GroupMemberRepository = Depends(get_group_member_repository),
-    quest_repo: QuestRepository = Depends(get_quest_repository)
+    quest_repo: QuestRepository = Depends(get_quest_repository),
+    user_repo: UserRepository = Depends(get_user_repository),
+    notif_service: NotificationService = Depends(get_notification_service)
 ) -> GroupService:
-    return GroupService(repo, member_repo, quest_repo)
+    return GroupService(repo, member_repo, quest_repo, user_repo, notif_service)
 
 def get_quest_service(
     repo: QuestRepository = Depends(get_quest_repository), 

@@ -26,7 +26,7 @@ class UserRepository:
         )
         return list(result.scalars().all())
     
-    async def get_user_by_public_id(self, public_id: str) -> User | None:
+    async def get_user_by_public_id(self, public_id: UUID) -> User | None:
         result = await self.db.execute(
             select(User).where(User.public_id == public_id)
         )

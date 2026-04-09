@@ -40,6 +40,13 @@ class User(Base):
         Index("ix_users_public_id", "public_id"),
         Index("ix_users_installation_id", "installation_id"),
     )
+    
+    def __repr__(self):
+        return f"User(id={self.id}, device_id='{self.device_id}', installation_id='{self.installation_id}', username='{self.username}', phone_number='{self.phone_number}', public_id='{self.public_id}', created_at='{self.created_at}', updated_at='{self.updated_at}')"
+    
+    '''Intentionally shortened representation for __str__'''
+    def __str__(self):
+        return f"User(id={self.id}, device_id='{self.device_id}', installation_id='{self.installation_id}', username='{self.username}', phone_number='{self.phone_number}', public_id='{self.public_id}')"
 
 class UserX(BaseModel):
     id: int

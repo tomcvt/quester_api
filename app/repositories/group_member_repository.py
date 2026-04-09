@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Sequence, Tuple
 import uuid
 
-from sqlalchemy import Row, select
+from sqlalchemy import Row, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from app.models import group
@@ -112,3 +112,26 @@ class GroupMemberRepository:
             )
         )
         return result.scalars().first()
+    
+    async def update_member_role(self, user_id: int, group_id: int, new_role: MemberRole) -> bool:
+        try:
+            stm = (
+                update(GroupMember)
+                .where(
+                    GroupMember.user_id == user_id,
+                    GroupMember.group_id == group_id
+                )
+                .values(role=new_role, updated_at=datetime.now())
+                .execution_options(synchronize_session="fetch")
+            )
+            result = await self.db.execute(stm)
+            await self.db.commit()
+            rowcount = getattr(result, 'rowcount', None)
+            if rowcount is None and hasattr(result, '_real_result'):
+                rowcount = getattr(result._real_result, 'rowcount', None)
+            if rowcount is None:
+                rowcount = 0
+            return rowcount > 0
+        except IntegrityError:
+            await self.db.rollback()
+            raise

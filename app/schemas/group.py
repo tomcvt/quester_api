@@ -22,3 +22,8 @@ class GroupResponse(BaseModel):
 class GroupJoinRequest(BaseModel):
     name: str
     password: str | None = None
+
+class SetRoleRequest(BaseModel):
+    group_public_id: uuid.UUID
+    user_public_id: uuid.UUID
+    role: str

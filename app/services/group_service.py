@@ -1,22 +1,36 @@
 from datetime import datetime
 import uuid
 
+from fastapi import BackgroundTasks
 from loguru import logger
+from app.exceptions import ForbiddenException, UnauthorizedException
 from app.models.group_member import MemberRole
 from app.models.user import User
 from app.repositories.group_member_repository import GroupMemberRepository
 from app.repositories.group_repository import GroupRepository
 from app.repositories.quest_repository import QuestRepository
+from app.repositories.user_repository import UserRepository
 from app.schemas.group import CreateGroupRequest
 from app.models.group import Group
 from app.schemas.group_member import GroupMemberSyncDTO
 from app.schemas.quest import QuestSyncDTO
+from app.services import notification_service
+from app.services.notification_service import NotificationService
 
 class GroupService:
-    def __init__(self, repo: GroupRepository, member_repo: GroupMemberRepository, quest_repo: QuestRepository):
+    def __init__(
+        self, 
+        repo: GroupRepository, 
+        member_repo: GroupMemberRepository, 
+        quest_repo: QuestRepository,
+        user_repo: UserRepository,
+        notif_service: NotificationService,
+        ):
         self.repo = repo
         self.member_repo = member_repo
         self.quest_repo = quest_repo
+        self.user_repo = user_repo
+        self.notif_service = notif_service
 
     async def create_group(self, current_user: User, request: CreateGroupRequest) -> Group:
         logger.info(f"Creating group with name: {request.name}")
@@ -101,7 +115,7 @@ class GroupService:
         logger.info(f"User {current_user.username} joined group {group_public_id} as MEMBER.")
         return group
     
-    async def join_group_with_password(self, current_user: User, group_name: str, password: str | None) -> Group:
+    async def join_group_with_password(self, current_user: User, group_name: str, password: str | None, background_tasks: BackgroundTasks | None) -> Group:
         group = await self.repo.get_by_name(group_name)
         if not group:
             logger.warning(f"Group with name {group_name} not found for joining.")
@@ -118,18 +132,67 @@ class GroupService:
             return group
         
         await self.member_repo.add_user_to_group_with_role(current_user, group, MemberRole.MEMBER)
+        if background_tasks:
+            background_tasks.add_task(self.notif_service.notify_user_role_changed, current_user, group, MemberRole.MEMBER)
+        else:
+            await self.notif_service.notify_user_role_changed(current_user, group, MemberRole.MEMBER)
         logger.info(f"User {current_user.username} joined group {group.public_id} as MEMBER.")
         return group
     
-    async def leave_group(self, current_user: User, group_public_id: uuid.UUID):
+    async def leave_group(self, current_user: User, group_public_id: uuid.UUID, background_tasks: BackgroundTasks | None):
         group = await self.repo.get_by_public_id(group_public_id)
         if not group:
             logger.warning(f"Group with public_id {group_public_id} not found for leaving.")
             raise ValueError("Group not found.")
-        
+        me_member = await self.member_repo.get_member(current_user.id, group.id)
+        if not me_member:
+            logger.warning(f"User {current_user.username} is not a member of group {group_public_id} for leaving.")
+            raise ValueError("User is not a member of the group.")
+        if me_member.role == MemberRole.OWNER:
+            logger.warning(f"User {current_user.username} attempted to leave group {group_public_id} but is the OWNER, which is not allowed.")
+            raise ValueError("Group owners cannot leave the group. Please transfer ownership or delete the group.")        
         wasDeleted = await self.member_repo.remove_user_from_group(current_user.id, group.id)
         if wasDeleted:
             logger.info(f"User {current_user.username} left group {group_public_id}.")
         else:
             logger.warning(f"User {current_user.username} was not a member of group {group_public_id}.")
             raise ValueError("User is not a member of the group.")
+        if background_tasks:
+            background_tasks.add_task(self.notif_service.notify_user_role_changed, current_user, group, "LEFT")
+        else:
+            await self.notif_service.notify_user_role_changed(current_user, group, "LEFT")
+        return
+    
+    async def set_user_role(self, current_user: User, group_public_id: uuid.UUID, user_public_id: uuid.UUID, role: MemberRole, background_tasks: BackgroundTasks | None):
+        if role == MemberRole.OWNER:
+            logger.warning(f"Attempt to set user role to OWNER in group {group_public_id} which is not allowed.")
+            raise ValueError("Cannot set user role to OWNER.")
+        group = await self.repo.get_by_public_id(group_public_id)
+        if not group:
+            logger.warning(f"Group with public_id {group_public_id} not found for setting user role.")
+            raise ValueError("Group not found.")
+        me_member = await self.member_repo.get_member(current_user.id, group.id)
+        if not me_member or me_member.role != MemberRole.OWNER:
+            logger.warning(f"User {current_user.username} does not have permission to set user roles in group {group_public_id}.")
+            raise ForbiddenException("You do not have permission to set user roles in this group.")
+        user_changed = await self.user_repo.get_user_by_public_id(user_public_id)
+        if not user_changed:
+            logger.warning(f"User with public_id {user_public_id} not found for setting role in group {group_public_id}.")
+            raise ValueError("Target user not found.")
+        if user_changed.id == current_user.id:
+            logger.warning(f"User {current_user.username} attempted to change their own role in group {group_public_id}, which is not allowed.")
+            raise ValueError("You cannot change your own role.")
+        user_member = await self.member_repo.get_member(user_changed.id, group.id)
+        if not user_member:
+            logger.warning(f"User {user_changed.username} is not a member of group {group_public_id} for setting role.")
+            raise ValueError("Target user is not a member of the group.")
+        wasUpdated = await self.member_repo.update_member_role(user_changed.id, group.id, role)
+        if wasUpdated:
+            logger.info(f"User {current_user.username} set role of user {user_changed.username} to {role.value} in group {group_public_id}.")
+        else:
+            logger.warning(f"Failed to update role for user {user_changed.username} in group {group_public_id}.")
+            raise ValueError("Failed to update user role.")
+        if background_tasks:
+            background_tasks.add_task(self.notif_service.notify_user_role_changed, user_changed, group, role)
+        else:
+            await self.notif_service.notify_user_role_changed(user_changed, group, role)

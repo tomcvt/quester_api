@@ -67,6 +67,7 @@ class AuthService:
             phone_number=request.phone_number,
         )
         created_user = await self.user_repo.create_user(User.new(new_user))
+        logger.info(f"Registered new user: {created_user}")
         return created_user
         
     

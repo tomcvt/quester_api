@@ -1,3 +1,5 @@
+from fastapi import HTTPException
+
 from app import exceptions
 from loguru import logger
 
@@ -45,6 +47,10 @@ def register_exception_handlers(app):
     @app.exception_handler(ValueError)
     async def value_error_exception_handler(request: Request, exc: ValueError):
         return JSONResponse(status_code=400, content={"detail": str(exc)})
+    
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request: Request, exc: HTTPException):
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
     @app.exception_handler(Exception)
     async def generic_exception_handler(request: Request, exc: Exception):
