@@ -20,8 +20,8 @@ from app.services.notification_service import NotificationService
 class GroupService:
     def __init__(
         self, 
-        repo: GroupRepository, 
-        member_repo: GroupMemberRepository, 
+        repo: GroupRepository,
+        member_repo: GroupMemberRepository,
         quest_repo: QuestRepository,
         user_repo: UserRepository,
         notif_service: NotificationService,
