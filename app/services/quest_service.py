@@ -219,6 +219,10 @@ class QuestService:
         current_member = await self.group_member_repo.get_member(current_user.id, quest.group_id)
         if not current_member:
             raise BadRequestException("User must be a member of the group to delete a task.")
+        #we need to fetch accepter, maybe later we optimize with full join projection
+        accepted_by = await self.repo.get_quest_dto_by_public_id(quest_public_id)
+        
+        
         if quest.creator_id != current_user.id and current_member.role != MemberRole.ADMIN and current_member.role != MemberRole.OWNER:
             raise BadRequestException("You are not authorized to delete this task. Only the creator, group admins or owners can delete a task.")
         await self.repo.delete(quest.id)
@@ -229,8 +233,8 @@ class QuestService:
             group_id=quest.group_id,
             group_public_id=group.public_id,
             status=QuestStatus.DELETED,
-            updated_at=datetime.utcnow(),
-            accepted_by_public_id=None,
+            updated_at=datetime.now(),
+            accepted_by_public_id=accepted_by.accepted_by_public_id if accepted_by else None,
             source_user_public_id=current_user.public_id
         )
         background_tasks.add_task(
