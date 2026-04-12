@@ -60,7 +60,7 @@ class AuthService:
         api_key=gen_utils.generate_safe_api_key(request.password) #TODO: implement proper hashing
         api_key_hash = api_key #TODO: hash the api key before storing
         new_user = NewUser(
-            device_id=request.device_id if request.device_id else f"device_{str(request.installation_id)[:8]}",
+            device_id=request.device_id if request.device_id else f"device_{str(request.installation_id)}",
             installation_id=request.installation_id,
             api_key_hash=api_key_hash,
             username=request.username,

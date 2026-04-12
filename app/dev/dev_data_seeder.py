@@ -43,7 +43,8 @@ class DevDataSeeder:
             self.group_repo, 
             self.gm_repo, 
             self.quest_repo,
-            self.user_repo
+            self.user_repo,
+            self.notification_service
         )
         self.quest_service = QuestService(
             self.quest_repo, 

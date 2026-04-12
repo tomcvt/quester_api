@@ -3,6 +3,7 @@ import uuid
 from fastapi import APIRouter, BackgroundTasks, Depends
 from loguru import logger
 from app.dependencies import get_current_user, get_quest_service, get_user_service
+from app.exceptions import UnauthorizedException
 from app.models.quest import Quest
 from app.models.user import User
 from app.schemas.quest import CreateQuestRequest, CreateQuestResponse, QuestSyncDTO
@@ -15,10 +16,12 @@ router = APIRouter(prefix="/quests", tags=["quests"])
 async def create_quest(
     body: CreateQuestRequest,
     background_tasks: BackgroundTasks,
-    current_user: User = Depends(get_current_user),
+    current_user: User | None = Depends(get_current_user),
     service: QuestService = Depends(get_quest_service),
     user_service = Depends(get_user_service)
 ):
+    if not current_user:
+        raise UnauthorizedException("User must be authenticated to create a quest.")
     quest: Quest = await service.create_quest_from_request(current_user, body, background_tasks)
     creator_user: User | None = await user_service.get_user_by_id(quest.creator_id) if quest.creator_id else None
     if not creator_user:
@@ -39,9 +42,11 @@ async def create_quest(
 async def accept_quest(
     quest_public_id: uuid.UUID,
     background_tasks: BackgroundTasks,
-    current_user: User = Depends(get_current_user),
+    current_user: User | None = Depends(get_current_user),
     service: QuestService = Depends(get_quest_service)
 ):
+    if not current_user:
+        raise UnauthorizedException("User must be authenticated to accept a quest.")
     updated_quest = await service.accept_quest(current_user, quest_public_id, background_tasks)
     if not updated_quest:
         raise Exception("Failed to accept quest.")
@@ -51,9 +56,11 @@ async def accept_quest(
 async def complete_quest(
     quest_public_id: uuid.UUID,
     background_tasks: BackgroundTasks,
-    current_user: User = Depends(get_current_user),
+    current_user: User | None = Depends(get_current_user),
     service: QuestService = Depends(get_quest_service)
 ):
+    if not current_user:
+        raise UnauthorizedException("User must be authenticated to complete a quest.")
     updated_quest = await service.complete_quest(current_user, quest_public_id, background_tasks)
     if not updated_quest:
         raise Exception("Failed to complete quest.")
@@ -77,5 +84,7 @@ async def delete_quest(
     current_user: User | None = Depends(get_current_user),
     service: QuestService = Depends(get_quest_service)
 ):
+    if not current_user:
+        raise UnauthorizedException("User must be authenticated to delete a quest.")
     await service.delete_quest_by_public_id(current_user, quest_public_id, background_tasks)
     return

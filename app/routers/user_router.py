@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from app.dependencies import get_current_user, get_user_service
 from app.exceptions import UnauthorizedException
 from app.models.user import User
-from app.schemas.auth import ChangePhoneNumberRequest, ChangeUsernameRequest
+from app.schemas.auth import ChangePhoneNumberRequest, ChangeUsernamePhoneRequest, ChangeUsernameRequest
 from app.schemas.user import UserDto, UsersSyncRequest, UsersSyncResponse
 from app.services.user_service import UserService
 
@@ -30,6 +30,26 @@ async def change_phone_number(
     new_phone_number = body.phone_number
     updated_user = await service.change_phone_number(current_user, new_phone_number)
     return {"message": "Phone number changed successfully", "new_phone_number": updated_user.phone_number}
+
+@router.post("/change-username-phone-number", status_code=200)
+async def change_username_and_phone_number(
+    body: ChangeUsernamePhoneRequest,
+    current_user: User = Depends(get_current_user),
+    service: UserService = Depends(get_user_service)
+):
+    new_username = body.username
+    new_phone_number = body.phone_number
+    updated_user = current_user
+    if new_username:
+        updated_user = await service.change_username(current_user, new_username)
+    if new_phone_number:
+        updated_user = await service.change_phone_number(current_user, new_phone_number)
+    
+    return {
+        "message": "User details changed successfully",
+        "new_username": updated_user.username,
+        "new_phone_number": updated_user.phone_number
+    }
 
 @router.post("/fetch-by-public-ids", response_model=UsersSyncResponse, status_code=200)
 async def fetch_users_by_public_ids(

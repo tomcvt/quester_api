@@ -38,3 +38,7 @@ class ChangeUsernameRequest(BaseModel):
 
 class ChangePhoneNumberRequest(BaseModel):
     phone_number: str
+
+class ChangeUsernamePhoneRequest(BaseModel):
+    username: str | None = None
+    phone_number: str | None = None
