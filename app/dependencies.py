@@ -39,8 +39,11 @@ def get_notification_service(
 ) -> NotificationService:
     return NotificationService(gm_repo, user_repo, quest_repo)
 
-def get_user_service(repo: UserRepository = Depends(get_user_repository)) -> UserService:
-    return UserService(repo)
+def get_user_service(
+    repo: UserRepository = Depends(get_user_repository),
+    notif_service: NotificationService = Depends(get_notification_service)
+) -> UserService:
+    return UserService(repo, notif_service)
 
 def get_group_service(
     repo: GroupRepository = Depends(get_group_repository), 

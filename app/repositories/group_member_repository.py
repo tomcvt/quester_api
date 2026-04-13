@@ -135,3 +135,26 @@ class GroupMemberRepository:
         except IntegrityError:
             await self.db.rollback()
             raise
+    
+    async def fetch_group_ids_by_user_id(self, user_id: int) -> list[int]:
+        result = await self.db.execute(
+            select(GroupMember.group_id).where(GroupMember.user_id == user_id)
+        )
+        return [row[0] for row in result.all()]
+    
+    async def fetch_distinct_group_members_w_details_by_group_ids(self, group_ids: Sequence[int]) -> list[GroupMemberWithUser]:
+        if not group_ids:
+            return []
+        result = await self.db.execute(
+            select(GroupMember, User)
+            .join(User, User.id == GroupMember.user_id)
+            .where(GroupMember.group_id.in_(group_ids))
+            .distinct()
+        )
+        return [
+            GroupMemberWithUser(
+                group_member=GroupMemberX.from_orm(member),
+                user=UserX.from_orm(user)
+            )
+            for member, user in result.all()
+        ]

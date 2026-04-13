@@ -13,6 +13,8 @@ from app.repositories.quest_repository import QuestRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.quest import QuestUpdateEvent
 from firebase_admin import messaging
+
+from app.schemas.user import UserUpdateEvent
 '''
 fix this
 ERROR    | app.services.notification_service:notify_group_members_of_new_quest:76 - Failed to send quest_created notification: Unknown error while making remote service calls: max_workers must be greater than 0
@@ -231,5 +233,47 @@ class NotificationService:
                 response.success_count, response.failure_count)
         except Exception as e:
             logger.error(f"Failed to send user_role_changed notification: {str(e)}")
+    
+    async def notify_user_updated(self, userUpdateEvent: UserUpdateEvent):
+        if not userUpdateEvent.data:
+            logger.warning(f"No data provided for user update event of type {userUpdateEvent.type}. Notification will not be sent.")
+            return
+        user = await self.user_repo.get_user_by_id(userUpdateEvent.id)
+        if not user:
+            logger.error(f"User with id {userUpdateEvent.id} not found for notification.")
+            return
+        user_id = userUpdateEvent.id
+        # we query db for all the members having connection to the user,
+        # then we send notifications to all of them, including the user himself (for now, can be changed later if needed)
+        # so first we get groups of the user, then we get all members of those groups, then we get their fcm tokens and send notifications
+        groups_ids = await self.gm_repo.fetch_group_ids_by_user_id(user_id)
+        gm_w_user_details = await self.gm_repo.fetch_distinct_group_members_w_details_by_group_ids(groups_ids)
+        valid_tokens = [member.user.fcm_token for member in gm_w_user_details if member.user.fcm_token]
+        skipped_users = [
+            member.user.username if member.user.username else 'Unknown' for member in gm_w_user_details 
+            if not member.user.fcm_token or member.user.fcm_token.strip() == ''
+            ]
+        if skipped_users:
+            logger.warning(f"Skipping notification for users without valid FCM tokens: {', '.join(skipped_users)}")
+        if not valid_tokens:
+            logger.warning(f"No valid FCM tokens found for user_id {user_id}. No notifications will be sent.")
+            return
         
-
+        message = messaging.MulticastMessage(
+            tokens=valid_tokens,
+            data={
+                'type': 'USER_UPDATED',
+                'user_public_id': str(user.public_id),
+                'update_type': userUpdateEvent.type,
+                'update_data': str(userUpdateEvent.data),
+            },
+            android=self._make_android_config(),
+        )
+        try:
+            loop = asyncio.get_event_loop()
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                response = await loop.run_in_executor(executor, messaging.send_each_for_multicast, message)
+            logger.info("FCM user_updated sent: {} success, {} fail",
+                response.success_count, response.failure_count)
+        except Exception as e:
+            logger.error(f"Failed to send user_updated notification: {str(e)}")

@@ -2,12 +2,19 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Self
 import uuid
+import enum
 from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import Index, String, DateTime, Uuid
+from sqlalchemy import Enum, Index, String, DateTime, Uuid
 from sqlalchemy.sql import func
 
 from app.models.base import Base
+
+
+class UserRole(enum.Enum):
+    USER = "user"
+    ADMIN = "admin"
+    SUPERUSER = "superuser"
 
 class User(Base):
     __tablename__ = "users"
@@ -21,13 +28,15 @@ class User(Base):
             phone_number=user.phone_number,
             public_id=uuid.uuid4(),
             fcm_token=user.fcm_token,
-            api_key_hash=user.api_key_hash
+            api_key_hash=user.api_key_hash,
+            role=user.role
         )
     
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     device_id: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     installation_id: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     username: Mapped[str] = mapped_column(String, nullable=True)
+    role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False)
     phone_number: Mapped[str] = mapped_column(String, nullable=True)
     public_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True, native_uuid=False), unique=True, nullable=False)
     api_key_hash: Mapped[str] = mapped_column(String, nullable=True)
@@ -53,6 +62,7 @@ class UserX(BaseModel):
     device_id: str
     installation_id: str
     username: str | None
+    role: UserRole
     phone_number: str | None
     public_id: uuid.UUID
     api_key_hash: str | None
@@ -68,6 +78,7 @@ class UserX(BaseModel):
             device_id=user.device_id,
             installation_id=user.installation_id,
             username=user.username,
+            role=user.role,
             phone_number=user.phone_number,
             public_id=user.public_id,
             api_key_hash=user.api_key_hash,
@@ -82,6 +93,7 @@ class NewUser:
     device_id: str
     installation_id: str
     username: str | None = None
+    role: UserRole = UserRole.USER
     phone_number: str | None = None
     fcm_token: str | None = None
     api_key_hash: str | None = None

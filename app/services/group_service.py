@@ -5,7 +5,7 @@ from fastapi import BackgroundTasks
 from loguru import logger
 from app.exceptions import ForbiddenException, UnauthorizedException
 from app.models.group_member import MemberRole
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.repositories.group_member_repository import GroupMemberRepository
 from app.repositories.group_repository import GroupRepository
 from app.repositories.quest_repository import QuestRepository
@@ -163,7 +163,34 @@ class GroupService:
             await self.notif_service.notify_user_role_changed(current_user, group, "LEFT")
         return
     
+    async def set_role_su(self, current_user: User, group_public_id: uuid.UUID, user_public_id: uuid.UUID, role: MemberRole, background_tasks: BackgroundTasks | None):
+        group = await self.repo.get_by_public_id(group_public_id)
+        if not group:
+            logger.warning(f"Group with public_id {group_public_id} not found for setting user role.")
+            raise ValueError("Group not found.")
+        user_changed = await self.user_repo.get_user_by_public_id(user_public_id)
+        if not user_changed:
+            logger.warning(f"User with public_id {user_public_id} not found for setting role in group {group_public_id}.")
+            raise ValueError("Target user not found.")
+        user_member = await self.member_repo.get_member(user_changed.id, group.id)
+        if not user_member:
+            logger.warning(f"User {user_changed.username} is not a member of group {group_public_id} for setting role.")
+            raise ValueError("Target user is not a member of the group.")
+        wasUpdated = await self.member_repo.update_member_role(user_changed.id, group.id, role)
+        if wasUpdated:
+            logger.info(f"User {current_user.username} set role of user {user_changed.username} to {role.value} in group {group_public_id}.")
+        else:
+            logger.warning(f"Failed to update role for user {user_changed.username} in group {group_public_id}.")
+            raise ValueError("Failed to update user role.")
+        if background_tasks:
+            background_tasks.add_task(self.notif_service.notify_user_role_changed, user_changed, group, role)
+        else:
+            await self.notif_service.notify_user_role_changed(user_changed, group, role)
+    
     async def set_user_role(self, current_user: User, group_public_id: uuid.UUID, user_public_id: uuid.UUID, role: MemberRole, background_tasks: BackgroundTasks | None):
+        if current_user.role == UserRole.SUPERUSER:
+            await self.set_role_su(current_user, group_public_id, user_public_id, role, background_tasks)
+            return
         if role == MemberRole.OWNER:
             logger.warning(f"Attempt to set user role to OWNER in group {group_public_id} which is not allowed.")
             raise ValueError("Cannot set user role to OWNER.")
