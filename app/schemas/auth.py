@@ -1,6 +1,8 @@
 import uuid
 from pydantic import BaseModel
 
+from app.models.user import UserRole
+
 
 class TokenResponse(BaseModel):
     session_token: str
@@ -10,6 +12,8 @@ class TokenResponse(BaseModel):
 class AuthResponse(BaseModel):
     session_token: str
     username: str | None
+    phone_number: str | None
+    role: UserRole
     public_id: uuid.UUID
     fcm_token: str
 
