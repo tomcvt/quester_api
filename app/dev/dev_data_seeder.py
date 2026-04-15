@@ -33,12 +33,13 @@ class DevDataSeeder:
         self.quest_repo = QuestRepository(db)
         self.gm_repo = GroupMemberRepository(db)
         self.auth_service = AuthService(self.user_repo)
-        self.user_service = UserService(self.user_repo)
+        
         self.notification_service = NotificationService(
             self.gm_repo,
             self.user_repo,
             self.quest_repo
         )
+        self.user_service = UserService(self.user_repo, self.notification_service)
         self.group_service = GroupService(
             self.group_repo, 
             self.gm_repo, 
