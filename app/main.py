@@ -1,10 +1,14 @@
-from fastapi import APIRouter, FastAPI, Request
+import os
+
+from fastapi import APIRouter, Depends, FastAPI, Request
 from fastapi.concurrency import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from loguru import logger
 import logging
 import time
 from app.core.database import db_lifespan
+from app.dependencies import get_current_user
 from app.exc_handler import register_exception_handlers
 from app.models.base import Base
 from app.models import user, group, group_member # type: ignore
@@ -103,5 +107,19 @@ async def log_requests(request: Request, call_next):
         duration
     )
     return response
+
+@app.get("/health", status_code=200)
+async def health_check():
+    return {"status": "ok"}
+
+@app.get("/web/{file_path:path}")
+def protected_static(file_path: str, user=Depends(get_current_user)):
+    rel_path = file
+    full_path = os.path.join("static", file_path)
+
+    if not os.path.isfile(full_path):
+        raise HTTPException(status_code=404)
+
+    return FileResponse(full_path)
 
 #uvicorn app.main:app --reload --port 8100
