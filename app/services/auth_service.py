@@ -9,7 +9,7 @@ from app.schemas.auth import AuthRequest, AuthResponse, RegistrationRequest, Reg
 from app.utils import gen_utils
 
 reserved_uuids = [
-    str(uuid.UUID(int=j) for j in range(1, 20))
+    str(uuid.UUID(int=j)) for j in range(1, 30)
 ]
 
 class AuthService:
@@ -60,10 +60,13 @@ class AuthService:
             #raise UserAlreadyExistsException("User with this installation ID already exists")
             #for simplicty we will return the existing user details now
             return existing_user
-        api_key=gen_utils.generate_safe_api_key(request.password) #TODO: implement proper hashing
+        api_key=gen_utils.generate_safe_api_key(request.installation_id) #TODO: implement proper hashing
         api_key_hash = api_key #TODO: hash the api key before storing
         role = UserRole.USER
         # debug superuser handling
+        for i in reserved_uuids:
+            logger.debug("Reserved UUID: {}", i)
+        logger.debug("Reserved UUIDs for superusers: {}", reserved_uuids)
         if request.installation_id in reserved_uuids:
             role = UserRole.SUPERUSER
         new_user = NewUser(

@@ -28,8 +28,8 @@ async def register(
     response = RegistrationResponse(
         session_token="mock_session_token",
         username=newUser.username,
-        api_key=newUser.api_key_hash if newUser.api_key_hash else '',
-        public_id=newUser.public_id if newUser.public_id else None
+        api_key=newUser.api_key_hash,
+        public_id=newUser.public_id
     )
     logger.info("User registered successfully: {}", response.username)
     return response

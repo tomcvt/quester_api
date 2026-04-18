@@ -12,8 +12,8 @@ class TokenResponse(BaseModel):
 class AuthResponse(BaseModel):
     session_token: str
     username: str | None
-    phone_number: str | None
-    role: UserRole
+    #phone_number: str | None
+    #role: UserRole
     public_id: uuid.UUID
     fcm_token: str
 
@@ -36,6 +36,9 @@ class RegistrationResponse(BaseModel):
     api_key: str
     username: str | None = None
     public_id: uuid.UUID | None = None
+    
+    def __str__(self):
+        return f"RegistrationResponse(session_token={self.session_token},\n api_key={self.api_key},\n username={self.username},\n public_id={self.public_id})"
 
 class ChangeUsernameRequest(BaseModel):
     username: str

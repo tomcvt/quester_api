@@ -90,6 +90,7 @@ async def get_group_quests(
 
 @router.get("/{group_public_id}/set-role", status_code=status.HTTP_200_OK)
 async def set_user_role(
+    group_public_id: uuid.UUID,
     body: SetRoleRequest,
     background_tasks: BackgroundTasks,
     current_user=Depends(get_current_user),
@@ -101,5 +102,5 @@ async def set_user_role(
         roleEnum = MemberRole(body.role)
     except ValueError:
         raise ValueError(f"Invalid role: {body.role}. Valid roles are: {[role.value for role in MemberRole]}")
-    await service.set_user_role(current_user, body.group_public_id, body.user_public_id, roleEnum, background_tasks)
+    await service.set_user_role(current_user, group_public_id, body.user_public_id, roleEnum, background_tasks)
     return {"message": "Successfully set the user role."}

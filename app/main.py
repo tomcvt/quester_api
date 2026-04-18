@@ -111,7 +111,7 @@ async def log_requests(request: Request, call_next):
 @app.get("/health", status_code=200)
 async def health_check():
     return {"status": "ok"}
-
+'''
 @app.get("/web/{file_path:path}")
 def protected_static(file_path: str, user=Depends(get_current_user)):
     rel_path = file
@@ -121,5 +121,5 @@ def protected_static(file_path: str, user=Depends(get_current_user)):
         raise HTTPException(status_code=404)
 
     return FileResponse(full_path)
-
+'''
 #uvicorn app.main:app --reload --port 8100

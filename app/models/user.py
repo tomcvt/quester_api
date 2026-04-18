@@ -55,7 +55,7 @@ class User(Base):
     
     '''Intentionally shortened representation for __str__'''
     def __str__(self):
-        return f"User(id={self.id}, device_id='{self.device_id}', installation_id='{self.installation_id}', username='{self.username}', phone_number='{self.phone_number}', public_id='{self.public_id}')"
+        return f"User(id={self.id},\n device_id='{self.device_id}',\n installation_id='{self.installation_id}',\n username='{self.username}',\n phone_number='{self.phone_number}',\n public_id='{self.public_id}',\n role='{self.role}')"
 
 class UserX(BaseModel):
     id: int

@@ -202,9 +202,10 @@ class NotificationService:
         except Exception as e:
             logger.error(f"Failed to send quest_deleted notification: {str(e)}")
     ''' TODO: This is currently only used for role changes, works for joining/leaving as well (for now only join)'''
-    async def notify_user_role_changed(self, changed_user: User, group: Group, new_role: MemberRole | str):
+    async def notify_user_role_changed(self, source_user: User, changed_user: User, group: Group, new_role: MemberRole | str):
         gm_w_user_details = await self.gm_repo.fetch_group_members_w_details_by_group_id(group.id)
-        valid_tokens = [member.user.fcm_token for member in gm_w_user_details if member.user.fcm_token]
+        valid_tokens = [member.user.fcm_token for member in gm_w_user_details 
+                        if member.user.fcm_token and member.user.public_id != source_user.public_id]
         skipped_users = [
             member.user.username if member.user.username else 'Unknown' for member in gm_w_user_details 
             if not member.user.fcm_token or member.user.fcm_token.strip() == ''
