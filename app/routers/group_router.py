@@ -88,7 +88,7 @@ async def get_group_quests(
     quests = await service.sync_quests_after_timestamp(group_public_id, since)
     return QuestSyncResponse(quests=quests)
 
-@router.get("/{group_public_id}/set-role", status_code=status.HTTP_200_OK)
+@router.post("/{group_public_id}/set-role", status_code=status.HTTP_200_OK)
 async def set_user_role(
     group_public_id: uuid.UUID,
     body: SetRoleRequest,

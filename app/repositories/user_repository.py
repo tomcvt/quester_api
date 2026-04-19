@@ -96,6 +96,23 @@ class UserRepository:
         await self.db.refresh(user)
         return user
     
+    async def change_username_and_phone_number(self, user_id: int, new_username: str, new_phone_number: str) -> User:
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            raise ValueError("User not found")
+        user.username = new_username
+        user.phone_number = new_phone_number
+        try:
+            self.db.add(user)
+            await self.db.commit()
+            await self.db.refresh(user)
+            return user
+        except IntegrityError as e:
+            await self.db.rollback()
+            if "UNIQUE constraint failed: users.username" in str(e):
+                raise UserAlreadyExistsException("A user with this username already exists.")
+            raise e
+    
     async def get_users_by_public_ids(self, public_ids: list[UUID]) -> list[User]:
         result = await self.db.execute(
             select(User).where(User.public_id.in_(public_ids))

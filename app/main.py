@@ -17,6 +17,7 @@ from app.routers.quest_router import router as quest_router
 from app.routers.group_router import router as group_router
 from app.routers.user_router import router as user_router
 from app.routers.auth_router import router as auth_router
+from app.web.web_router import router as web_router
 from app.core.config import settings
 from app.core.firebase import firebase_lifespan
 from app.dev.dev_data_seeder import dev_data_seeder_lifespan
@@ -47,6 +48,7 @@ global_router.include_router(auth_router)
 global_router.include_router(quest_router)
 
 app.include_router(global_router)
+app.include_router(web_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # MVP — lock this down before production

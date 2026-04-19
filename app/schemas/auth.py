@@ -22,6 +22,7 @@ class AuthRequest(BaseModel):
     installation_id: str
     api_key: str
     username: str | None = None
+    password: str | None = None
     fcm_token: str | None = None
 
 class RegistrationRequest(BaseModel):
@@ -49,3 +50,11 @@ class ChangePhoneNumberRequest(BaseModel):
 class ChangeUsernamePhoneRequest(BaseModel):
     username: str | None = None
     phone_number: str | None = None
+
+class WebLoginRequest(BaseModel):
+    username: str
+    password: str
+
+class WebRegisterRequest(BaseModel):
+    username: str
+    password: str

@@ -29,6 +29,7 @@ class User(Base):
             public_id=uuid.uuid4(),
             fcm_token=user.fcm_token,
             api_key_hash=user.api_key_hash,
+            password_hash=user.password_hash,
             role=user.role
         )
     
@@ -40,6 +41,7 @@ class User(Base):
     phone_number: Mapped[str] = mapped_column(String, nullable=True)
     public_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True, native_uuid=False), unique=True, nullable=False)
     api_key_hash: Mapped[str] = mapped_column(String, nullable=True)
+    password_hash: Mapped[str] = mapped_column(String, nullable=True)
     session_token: Mapped[str] = mapped_column(String, nullable=True)
     fcm_token: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
@@ -97,4 +99,5 @@ class NewUser:
     phone_number: str | None = None
     fcm_token: str | None = None
     api_key_hash: str | None = None
+    password_hash: str | None = None
     session_token: str | None = None

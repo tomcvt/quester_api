@@ -5,7 +5,7 @@ from loguru import logger
 from app.exceptions import InvalidCredentialsException, UserAlreadyExistsException, UserNotFoundException
 from app.models.user import NewUser, User, UserRole
 from app.repositories.user_repository import UserRepository
-from app.schemas.auth import AuthRequest, AuthResponse, RegistrationRequest, RegistrationResponse
+from app.schemas.auth import AuthRequest, AuthResponse, RegistrationRequest, RegistrationResponse, WebLoginRequest, WebRegisterRequest
 from app.utils import gen_utils
 
 reserved_uuids = [
@@ -80,5 +80,33 @@ class AuthService:
         created_user = await self.user_repo.create_user(User.new(new_user))
         logger.info(f"Registered new user: {created_user}")
         return created_user
-        
+
+    async def web_login(self, request: WebLoginRequest) -> User:
+        """
+        Authenticate a web user by username + bcrypt password.
+        Since usernames are not unique, all matching users are checked.
+        Raises InvalidCredentialsException if none match.
+        """
+        users = await self.user_repo.get_users_by_username(request.username)
+        for user in users:
+            if user.password_hash and gen_utils.verify_password(request.password, user.password_hash):
+                return user
+        raise InvalidCredentialsException("Invalid username or password")
+
+    async def web_register(self, request: WebRegisterRequest) -> User:
+        """
+        Register a new web user with a bcrypt-hashed password.
+        installation_id and device_id are generated as UUIDs since this is a web-only account.
+        """
+        generated_id = str(uuid.uuid4())
+        new_user = NewUser(
+            device_id=f"web_{generated_id}",
+            installation_id=generated_id,
+            username=request.username,
+            password_hash=gen_utils.hash_password(request.password),
+            role=UserRole.USER,
+        )
+        created_user = await self.user_repo.create_user(User.new(new_user))
+        logger.info("Registered new web user: {}", created_user.username)
+        return created_user
     

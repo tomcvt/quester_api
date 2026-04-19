@@ -26,7 +26,7 @@ class UserService:
         self, 
         current_user: User | None, 
         new_username: str,
-        notify: bool = False,
+        notify: bool = True,
         background_tasks: BackgroundTasks | None = None) -> User:
         if not current_user:
             raise ForbiddenException("You must be logged in to change your username.")
@@ -45,10 +45,50 @@ class UserService:
             await self.notif_service.notify_user_updated(userUpdateEvent)
         return updatedUser
     
-    async def change_phone_number(self, current_user: User | None, new_phone_number: str) -> User:
+    async def change_phone_number(
+        self, current_user: User | None, new_phone_number: str, notify: bool = True, background_tasks: BackgroundTasks | None = None) -> User:
         if not current_user:
             raise ForbiddenException("You must be logged in to change your phone number.")
-        return await self.repo.change_phone_number(current_user.id, new_phone_number)
+        self.validate_phone_number(new_phone_number)
+        updatedUser = await self.repo.change_phone_number(current_user.id, new_phone_number)
+        userUpdateEvent = UserUpdateEvent(
+            id=current_user.id,
+            public_id=current_user.public_id,
+            type="PHONE_NUMBER_CHANGED",
+            data=new_phone_number,
+            updated_at=updatedUser.updated_at
+        )
+        if notify and background_tasks:
+            background_tasks.add_task(self.notif_service.notify_user_updated, userUpdateEvent)
+        if notify and not background_tasks:
+            await self.notif_service.notify_user_updated(userUpdateEvent)
+        return updatedUser
+    async def change_username_and_phone_number(
+        self,
+        current_user: User | None,
+        new_username: str,
+        new_phone_number: str,
+        notify: bool = True,
+        background_tasks: BackgroundTasks | None = None
+    ) -> User:
+        if not current_user:
+            raise ForbiddenException("You must be logged in to change your username and phone number.")
+        self.validate_username(new_username)
+        self.validate_phone_number(new_phone_number)
+        updatedUser = await self.repo.change_username_and_phone_number(current_user.id, new_username, new_phone_number)
+        userUpdateEvent = UserUpdateEvent(
+            id=current_user.id,
+            public_id=current_user.public_id,
+            type="USERNAME_AND_PHONE_NUMBER_CHANGED",
+            data=f"{new_username}|{new_phone_number}",
+            updated_at=updatedUser.updated_at
+        )
+        if notify and background_tasks:
+            background_tasks.add_task(self.notif_service.notify_user_updated, userUpdateEvent)
+        if notify and not background_tasks:
+            await self.notif_service.notify_user_updated(userUpdateEvent)
+        return updatedUser
+    
     
     def validate_username(self, username: str):
         # regex for allowed characters: letters, numbers, underscores, and hyphens 3-20
@@ -58,4 +98,10 @@ class UserService:
         pattern = r'^[a-zA-Z0-9_-]{3,20}$'
         if not re.match(pattern, username):
             raise ValueError("Username can only contain letters, numbers, underscores, and hyphens, and must be 3-20 characters long.")
+    
+    def validate_phone_number(self, phone_number: str):
+        # regex for phone number validation (simple international format)
+        pattern = r'^\+?[1-9]\d{1,14}$'
+        if not re.match(pattern, phone_number):
+            raise ValueError("Invalid phone number format. Must be in international format, e.g. +1234567890.")
     
