@@ -63,10 +63,6 @@ class AuthService:
         api_key=gen_utils.generate_safe_api_key(request.installation_id) #TODO: implement proper hashing
         api_key_hash = api_key #TODO: hash the api key before storing
         role = UserRole.USER
-        # debug superuser handling
-        for i in reserved_uuids:
-            logger.debug("Reserved UUID: {}", i)
-        logger.debug("Reserved UUIDs for superusers: {}", reserved_uuids)
         if request.installation_id in reserved_uuids:
             role = UserRole.SUPERUSER
         new_user = NewUser(

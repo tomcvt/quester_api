@@ -21,6 +21,9 @@ class UserService:
     
     async def get_user_by_id(self, id: int):
         return await self.repo.get_user_by_id(id)
+
+    async def get_users_page(self, page: int, size: int) -> tuple[list[User], int]:
+        return await self.repo.get_users_page(page, size)
     
     async def change_username(
         self, 

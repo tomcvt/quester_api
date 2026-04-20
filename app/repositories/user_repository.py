@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
@@ -13,6 +13,10 @@ from app.models.user import User
 class UserRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
+    
+    async def get_count(self) -> int:
+        result = await self.db.execute(select(func.count()).select_from(User))
+        return result.scalar_one()
 
     async def get_user_by_id(self, user_id: int) -> User | None:
         result = await self.db.execute(
@@ -117,5 +121,11 @@ class UserRepository:
         result = await self.db.execute(
             select(User).where(User.public_id.in_(public_ids))
         )
-        #return [user for user in result.scalars().all()]
         return list(result.scalars().all())
+
+    async def get_users_page(self, page: int, size: int) -> tuple[list[User], int]:
+        users_result = await self.db.execute(
+            select(User).order_by(User.id).limit(size).offset(page * size)
+        )
+        count_result = await self.get_count()
+        return list(users_result.scalars().all()), count_result
