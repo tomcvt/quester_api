@@ -1,12 +1,14 @@
 
 import uuid
+from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import NewUser, User
 from sqlalchemy import select
-from fastapi import Depends, Header
+from fastapi import Cookie, Depends, Header
 from loguru import logger
 from app.core.database import get_db
+from app.web.session import get_user_id_from_session, COOKIE_NAME
 from app.repositories.group_repository import GroupRepository
 from app.repositories.quest_repository import QuestRepository
 from app.repositories.user_repository import UserRepository
@@ -66,25 +68,35 @@ def get_auth_service(user_repo: UserRepository = Depends(get_user_repository)) -
     return AuthService(user_repo)
 
 async def get_current_user(
-    x_installation_id: str = Header("X-Installation-ID"),
-    x_session_token: str = Header("X-Session-Token"),
+    x_installation_id: Optional[str] = Header(None, alias="X-Installation-ID"),
+    x_session_token: Optional[str] = Header(None, alias="X-Session-Token"),
+    jsessionid: Optional[str] = Cookie(None, alias=COOKIE_NAME),
     repo: UserRepository = Depends(get_user_repository),
     ) -> User | None:
-    result = await repo.db.execute(select(User).where(User.installation_id == x_installation_id))
-    user = result.scalars().first()
-    if user and user.session_token != x_session_token:
-        logger.warning(f"Invalid session token for installation_id {x_installation_id}. Expected {user.session_token}, got {x_session_token}.")
-        return None
-    if not user:
-        logger.warning(f"No user found with installation_id {x_installation_id}.")
-    if not user:
-        #TODO: This is a temporary solution to create a user if it doesn't exist. We should have a proper registration flow in the future.
-        user = User.new(
-            NewUser(
-                device_id=f"device_{x_installation_id[:8]}",
-                installation_id=x_installation_id,
-                username=f"NEW_USER_{x_installation_id[:8]}",
-                fcm_token=''
+
+    # --- Auth flow 1: header-based (mobile / API clients) ---
+    if x_installation_id:
+        result = await repo.db.execute(select(User).where(User.installation_id == x_installation_id))
+        user = result.scalars().first()
+        if user and (not x_session_token or user.session_token != x_session_token):
+            logger.warning(f"Invalid session token for installation_id {x_installation_id}.")
+            return None
+        if not user:
+            logger.warning(f"No user found with installation_id {x_installation_id}.")
+            #TODO: This is a temporary solution to create a user if it doesn't exist. We should have a proper registration flow in the future.
+            user = User.new(
+                NewUser(
+                    device_id=f"device_{x_installation_id[:8]}",
+                    installation_id=x_installation_id,
+                    username=f"NEW_USER_{x_installation_id[:8]}",
+                    fcm_token=''
+                )
             )
-        )
-    return user
+        return user
+
+    # --- Auth flow 2: session cookie (web clients) ---
+    user_id = get_user_id_from_session(jsessionid)
+    if user_id is None:
+        return None
+    result = await repo.db.execute(select(User).where(User.id == user_id))
+    return result.scalars().first()

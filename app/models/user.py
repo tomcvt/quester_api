@@ -29,6 +29,7 @@ class User(Base):
             public_id=uuid.uuid4(),
             fcm_token=user.fcm_token,
             api_key_hash=user.api_key_hash,
+            password_hash=user.password_hash,
             role=user.role
         )
     
@@ -40,6 +41,7 @@ class User(Base):
     phone_number: Mapped[str] = mapped_column(String, nullable=True)
     public_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True, native_uuid=False), unique=True, nullable=False)
     api_key_hash: Mapped[str] = mapped_column(String, nullable=True)
+    password_hash: Mapped[str] = mapped_column(String, nullable=True)
     session_token: Mapped[str] = mapped_column(String, nullable=True)
     fcm_token: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
@@ -55,7 +57,7 @@ class User(Base):
     
     '''Intentionally shortened representation for __str__'''
     def __str__(self):
-        return f"User(id={self.id}, device_id='{self.device_id}', installation_id='{self.installation_id}', username='{self.username}', phone_number='{self.phone_number}', public_id='{self.public_id}')"
+        return f"User(id={self.id},\n device_id='{self.device_id}',\n installation_id='{self.installation_id}',\n username='{self.username}',\n phone_number='{self.phone_number}',\n public_id='{self.public_id}',\n role='{self.role}')"
 
 class UserX(BaseModel):
     id: int
@@ -97,4 +99,5 @@ class NewUser:
     phone_number: str | None = None
     fcm_token: str | None = None
     api_key_hash: str | None = None
+    password_hash: str | None = None
     session_token: str | None = None

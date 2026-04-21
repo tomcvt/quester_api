@@ -1,10 +1,14 @@
-from fastapi import APIRouter, FastAPI, Request
+import os
+
+from fastapi import APIRouter, Depends, FastAPI, Request
 from fastapi.concurrency import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from loguru import logger
 import logging
 import time
 from app.core.database import db_lifespan
+from app.dependencies import get_current_user
 from app.exc_handler import register_exception_handlers
 from app.models.base import Base
 from app.models import user, group, group_member # type: ignore
@@ -13,6 +17,7 @@ from app.routers.quest_router import router as quest_router
 from app.routers.group_router import router as group_router
 from app.routers.user_router import router as user_router
 from app.routers.auth_router import router as auth_router
+from app.web.web_router import router as web_router
 from app.core.config import settings
 from app.core.firebase import firebase_lifespan
 from app.dev.dev_data_seeder import dev_data_seeder_lifespan
@@ -43,6 +48,7 @@ global_router.include_router(auth_router)
 global_router.include_router(quest_router)
 
 app.include_router(global_router)
+app.include_router(web_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # MVP — lock this down before production
@@ -104,4 +110,18 @@ async def log_requests(request: Request, call_next):
     )
     return response
 
+@app.get("/health", status_code=200)
+async def health_check():
+    return {"status": "ok"}
+'''
+@app.get("/web/{file_path:path}")
+def protected_static(file_path: str, user=Depends(get_current_user)):
+    rel_path = file
+    full_path = os.path.join("static", file_path)
+
+    if not os.path.isfile(full_path):
+        raise HTTPException(status_code=404)
+
+    return FileResponse(full_path)
+'''
 #uvicorn app.main:app --reload --port 8100

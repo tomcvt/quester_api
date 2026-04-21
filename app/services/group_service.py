@@ -133,9 +133,9 @@ class GroupService:
         
         await self.member_repo.add_user_to_group_with_role(current_user, group, MemberRole.MEMBER)
         if background_tasks:
-            background_tasks.add_task(self.notif_service.notify_user_role_changed, current_user, group, MemberRole.MEMBER)
+            background_tasks.add_task(self.notif_service.notify_user_role_changed, current_user, current_user, group, MemberRole.MEMBER)
         else:
-            await self.notif_service.notify_user_role_changed(current_user, group, MemberRole.MEMBER)
+            await self.notif_service.notify_user_role_changed(current_user, current_user, group, MemberRole.MEMBER)
         logger.info(f"User {current_user.username} joined group {group.public_id} as MEMBER.")
         return group
     
@@ -158,9 +158,9 @@ class GroupService:
             logger.warning(f"User {current_user.username} was not a member of group {group_public_id}.")
             raise ValueError("User is not a member of the group.")
         if background_tasks:
-            background_tasks.add_task(self.notif_service.notify_user_role_changed, current_user, group, "LEFT")
+            background_tasks.add_task(self.notif_service.notify_user_role_changed, current_user, current_user, group, "LEFT")
         else:
-            await self.notif_service.notify_user_role_changed(current_user, group, "LEFT")
+            await self.notif_service.notify_user_role_changed(current_user, current_user, group, "LEFT")
         return
     
     async def set_role_su(self, current_user: User, group_public_id: uuid.UUID, user_public_id: uuid.UUID, role: MemberRole, background_tasks: BackgroundTasks | None):
@@ -183,9 +183,9 @@ class GroupService:
             logger.warning(f"Failed to update role for user {user_changed.username} in group {group_public_id}.")
             raise ValueError("Failed to update user role.")
         if background_tasks:
-            background_tasks.add_task(self.notif_service.notify_user_role_changed, user_changed, group, role)
+            background_tasks.add_task(self.notif_service.notify_user_role_changed, current_user, user_changed, group, role)
         else:
-            await self.notif_service.notify_user_role_changed(user_changed, group, role)
+            await self.notif_service.notify_user_role_changed(current_user, user_changed, group, role)
     
     async def set_user_role(self, current_user: User, group_public_id: uuid.UUID, user_public_id: uuid.UUID, role: MemberRole, background_tasks: BackgroundTasks | None):
         if current_user.role == UserRole.SUPERUSER:
@@ -220,6 +220,6 @@ class GroupService:
             logger.warning(f"Failed to update role for user {user_changed.username} in group {group_public_id}.")
             raise ValueError("Failed to update user role.")
         if background_tasks:
-            background_tasks.add_task(self.notif_service.notify_user_role_changed, user_changed, group, role)
+            background_tasks.add_task(self.notif_service.notify_user_role_changed, current_user, user_changed, group, role)
         else:
-            await self.notif_service.notify_user_role_changed(user_changed, group, role)
+            await self.notif_service.notify_user_role_changed(current_user, user_changed, group, role)

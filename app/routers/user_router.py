@@ -1,9 +1,9 @@
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from app.dependencies import get_current_user, get_user_service
 from app.exceptions import UnauthorizedException
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.auth import ChangePhoneNumberRequest, ChangeUsernamePhoneRequest, ChangeUsernameRequest
 from app.schemas.user import UserDto, UsersSyncRequest, UsersSyncResponse
 from app.services.user_service import UserService
@@ -62,3 +62,25 @@ async def fetch_users_by_public_ids(
     users = await service.repo.get_users_by_public_ids(body.public_ids)
     user_dtos = [UserDto.model_validate(user) for user in users]
     return UsersSyncResponse(users=user_dtos)
+
+
+@router.get("/all", response_model=dict, status_code=200)
+async def get_all_users(
+    page: int = Query(0, ge=0, description="Zero-based page number"),
+    size: int = Query(20, ge=1, le=100, description="Page size (max 100)"),
+    current_user: User | None = Depends(get_current_user),
+    service: UserService = Depends(get_user_service)
+):
+    if not current_user:
+        raise UnauthorizedException("Authentication required.")
+    if current_user.role not in (UserRole.ADMIN, UserRole.SUPERUSER):
+        raise UnauthorizedException("Insufficient permissions.")
+    users, total = await service.get_users_page(page, size)
+    user_dtos = [UserDto.model_validate(u) for u in users]
+    return {
+        "items": [u.model_dump() for u in user_dtos],
+        "total": total,
+        "page": page,
+        "size": size,
+        "total_pages": (total + size - 1) // size,
+    }
