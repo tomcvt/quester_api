@@ -40,8 +40,10 @@ class AuthService:
             return AuthResponse(
                 session_token=newSessionToken,
                 username=user.username,
+                phone_number=user.phone_number,
                 public_id=user.public_id,
-                fcm_token=user.fcm_token if user.fcm_token else ''
+                fcm_token=user.fcm_token if user.fcm_token else '',
+                role=user.role
             )
         else:
             logger.warning("No user found with installation ID: {}", request.installation_id)
@@ -50,8 +52,10 @@ class AuthService:
             return AuthResponse(
                 session_token='',
                 username='',
+                phone_number=None,    
                 public_id=uuid.NIL,
-                fcm_token=''
+                fcm_token='',
+                role=UserRole.USER
             )
     
     async def register_user(self, request: RegistrationRequest) -> User:
