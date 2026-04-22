@@ -60,6 +60,13 @@ class DevDataSeeder:
     async def seed(self):
         # Implement your data seeding logic here
         # i will implement later using services
+        superuser_request = RegistrationRequest(
+            device_id="superuser_device",
+            installation_id=str(uuid.UUID(int=7)),
+            username="superuser",
+            password="125", #TODO
+            phone_number="0000000000"
+        )
         registration_request_1 = RegistrationRequest(
             device_id="test_device_1",
             installation_id=str(self.uuidNIL13),
@@ -74,6 +81,8 @@ class DevDataSeeder:
             password="",
             phone_number="0987654321"
         )
+        superuser = await self.auth_service.register_user(superuser_request)
+        logger.info(f"Registered superuser: {superuser.username}")
         user1 = await self.auth_service.register_user(registration_request_1)
         user2 = await self.auth_service.register_user(registration_request_2)
         logger.info(f"Registered users: {user1.username} and {user2.username}")
