@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quester — Admin Dashboard</title>
+  <link rel="stylesheet" href="/shared.css" />
+</head>
+<body class="dashboard">
+
+  <div class="dashboard-header">
+    <h1>Quester <span style="color:#64748b;font-weight:400;font-size:1rem;">Admin</span></h1>
+    <a href="/login" class="btn btn-secondary" style="text-decoration:none;padding:0.5rem 1rem;border-radius:8px;font-size:0.875rem;">Sign out</a>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tabs" role="tablist">
+    <button class="tab-btn active" role="tab" data-tab="users">Users</button>
+    <button class="tab-btn"        role="tab" data-tab="quests">Quests</button>
+    <button class="tab-btn stub"   role="tab" data-tab="groups" aria-disabled="true">Groups</button>
+    <button class="tab-btn stub"   role="tab" data-tab="group-members" aria-disabled="true">Group Members</button>
+  </div>
+
+  <!-- ── Users tab ── -->
+  <div id="tab-users" class="tab-content active" role="tabpanel">
+    <div id="users-table"></div>
+    <div id="users-pagination"></div>
+  </div>
+
+  <!-- ── Quests tab ── -->
+  <div id="tab-quests" class="tab-content" role="tabpanel">
+    <div class="filters">
+      <div class="filter-group">
+        <label for="filter-quest-name">Name</label>
+        <input id="filter-quest-name" type="text" placeholder="contains…" />
+      </div>
+      <div class="filter-group">
+        <label for="filter-quest-status">Status</label>
+        <select id="filter-quest-status">
+          <option value="">All</option>
+          <option value="STARTED">STARTED</option>
+          <option value="ACCEPTED">ACCEPTED</option>
+          <option value="COMPLETED">COMPLETED</option>
+          <option value="DELETED">DELETED</option>
+          <option value="TIMED_OUT">TIMED_OUT</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="filter-quest-group-id">Group ID</label>
+        <input id="filter-quest-group-id" type="number" min="1" placeholder="e.g. 3" />
+      </div>
+      <div class="filter-group">
+        <label for="filter-quest-creator-id">Creator ID</label>
+        <input id="filter-quest-creator-id" type="number" min="1" placeholder="e.g. 1" />
+      </div>
+      <div class="filter-actions">
+        <button id="quest-apply-btn" class="btn btn-primary">Apply</button>
+        <button id="quest-reset-btn" class="btn btn-secondary">Reset</button>
+      </div>
+    </div>
+    <div id="quests-table"></div>
+    <div id="quests-pagination"></div>
+  </div>
+
+  <!-- ── Groups tab (stub) ── -->
+  <div id="tab-groups" class="tab-content" role="tabpanel">
+    <div class="coming-soon">
+      <span>🏗️</span>
+      Groups — coming soon
+    </div>
+  </div>
+
+  <!-- ── Group Members tab (stub) ── -->
+  <div id="tab-group-members" class="tab-content" role="tabpanel">
+    <div class="coming-soon">
+      <span>🏗️</span>
+      Group Members — coming soon
+    </div>
+  </div>
+
+  <script src="/admin_dashboard.js"></script>
+</body>
+</html>

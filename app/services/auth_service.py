@@ -73,6 +73,7 @@ class AuthService:
             device_id=request.device_id if request.device_id else f"device_{str(request.installation_id)}",
             installation_id=request.installation_id,
             api_key_hash=api_key_hash,
+            password_hash=gen_utils.hash_password(request.password) if request.password else None,
             username=request.username,
             phone_number=request.phone_number,
             role=role
@@ -89,6 +90,10 @@ class AuthService:
         """
         users = await self.user_repo.get_users_by_username(request.username)
         for user in users:
+            logger.debug(f"Checking password for user {user.username} with ID {user.id}")
+            logger.debug(f"User password hash: {user.password_hash}")
+            logger.debug(f"Provided password: {request.password}")
+            logger.debug(f"Password verification result: {gen_utils.verify_password(request.password, user.password_hash) if user.password_hash else 'No password hash'}")
             if user.password_hash and gen_utils.verify_password(request.password, user.password_hash):
                 return user
         raise InvalidCredentialsException("Invalid username or password")
@@ -107,6 +112,6 @@ class AuthService:
             role=UserRole.USER,
         )
         created_user = await self.user_repo.create_user(User.new(new_user))
-        logger.info("Registered new web user: {}", created_user.username)
+        logger.info(f"Registered new web user: {created_user.username}")
         return created_user
     

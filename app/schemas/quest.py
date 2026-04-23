@@ -4,9 +4,32 @@ from datetime import datetime
 from dataclasses import dataclass
 import uuid
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.models.quest import Quest, QuestStatus, QuestType
+
+class QuestFullDto(BaseModel):
+    id: int
+    public_id: uuid.UUID
+    group_id: int
+    name: str
+    description: str | None
+    date: datetime | None
+    deadline_start: datetime | None
+    deadline_end: datetime | None
+    address: str | None
+    contact_number: str | None
+    contact_info: str | None
+    data: str | None
+    type: QuestType
+    inclusive: bool
+    status: QuestStatus
+    creator_id: int
+    created_at: datetime
+    updated_at: datetime
+    accepted_by_id: int | None = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CreateQuestRequest(BaseModel):

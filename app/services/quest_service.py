@@ -37,6 +37,17 @@ class QuestService:
     
     async def get_quest_dto_by_public_id(self, public_id: uuid.UUID) -> QuestSyncDTO | None:
         return await self.repo.get_quest_dto_by_public_id(public_id)
+
+    async def get_quests_page(
+        self,
+        page: int,
+        size: int,
+        status: QuestStatus | None = None,
+        group_id: int | None = None,
+        creator_id: int | None = None,
+        name: str | None = None,
+    ) -> tuple[list[Quest], int]:
+        return await self.repo.get_quests_page(page, size, status, group_id, creator_id, name)
     
     async def create_quest(
         self, 

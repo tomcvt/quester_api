@@ -37,7 +37,7 @@ def _resolve_path(file_path: str) -> str | None:
 
 def _is_allowed_extension(path: str) -> bool:
     ext = os.path.splitext(path)[1].lower()
-    return ext in (".html", ".js")
+    return ext in (".html", ".js", ".css")
 
 
 def _stem(path: str) -> str:
@@ -63,8 +63,9 @@ async def serve_static(
     if resolved is None or not _is_allowed_extension(resolved):
         raise HTTPException(status_code=404)
 
-    # Guard all pages except index and login
-    if _stem(resolved) not in UNGUARDED and user is None:
+    # CSS is always public — no sensitive data
+    ext = os.path.splitext(resolved)[1].lower()
+    if ext != ".css" and _stem(resolved) not in UNGUARDED and user is None:
         raise HTTPException(status_code=401, detail="Authentication required")
 
     return FileResponse(resolved)

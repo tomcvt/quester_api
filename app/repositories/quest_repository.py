@@ -2,7 +2,7 @@ from datetime import datetime
 import uuid
 from loguru import logger
 
-from sqlalchemy import select, update
+from sqlalchemy import and_, func, select, update
 from sqlalchemy.orm import aliased
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -148,6 +148,35 @@ class QuestRepository:
             for quest, creator_public_id, accepter_public_id in result.all()
         ]
     
+    async def get_quests_page(
+        self,
+        page: int,
+        size: int,
+        status: QuestStatus | None = None,
+        group_id: int | None = None,
+        creator_id: int | None = None,
+        name: str | None = None,
+    ) -> tuple[list[Quest], int]:
+        filters = []
+        if status is not None:
+            filters.append(Quest.status == status)
+        if group_id is not None:
+            filters.append(Quest.group_id == group_id)
+        if creator_id is not None:
+            filters.append(Quest.creator_id == creator_id)
+        if name is not None:
+            filters.append(Quest.name.ilike(f"%{name}%"))
+
+        stmt = select(Quest).order_by(Quest.id).limit(size).offset(page * size)
+        count_stmt = select(func.count()).select_from(Quest)
+        if filters:
+            stmt = stmt.where(and_(*filters))
+            count_stmt = count_stmt.where(and_(*filters))
+
+        quests_result = await self.db.execute(stmt)
+        count_result = await self.db.execute(count_stmt)
+        return list(quests_result.scalars().all()), count_result.scalar_one()
+
     async def get_quest_dto_by_public_id(self, public_id: uuid.UUID) -> QuestSyncDTO | None:
         creator = aliased(User)
         accepter = aliased(User)

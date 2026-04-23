@@ -1,12 +1,12 @@
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from loguru import logger
 from app.dependencies import get_current_user, get_quest_service, get_user_service
 from app.exceptions import UnauthorizedException
-from app.models.quest import Quest
-from app.models.user import User
-from app.schemas.quest import CreateQuestRequest, CreateQuestResponse, QuestSyncDTO
+from app.models.quest import Quest, QuestStatus
+from app.models.user import User, UserRole
+from app.schemas.quest import CreateQuestRequest, CreateQuestResponse, QuestFullDto, QuestSyncDTO
 from app.services.quest_service import QuestService
 
 
@@ -65,6 +65,32 @@ async def complete_quest(
     if not updated_quest:
         raise Exception("Failed to complete quest.")
     return await service.get_quest_dto_by_public_id(quest_public_id)
+
+@router.get("/all", response_model=dict, status_code=200)
+async def get_all_quests(
+    page: int = Query(0, ge=0, description="Zero-based page number"),
+    size: int = Query(20, ge=1, le=100, description="Page size (max 100)"),
+    status: QuestStatus | None = Query(None),
+    group_id: int | None = Query(None),
+    creator_id: int | None = Query(None),
+    name: str | None = Query(None, max_length=200),
+    current_user: User | None = Depends(get_current_user),
+    service: QuestService = Depends(get_quest_service),
+):
+    if not current_user:
+        raise UnauthorizedException("Authentication required.")
+    if current_user.role not in (UserRole.ADMIN, UserRole.SUPERUSER):
+        raise UnauthorizedException("Insufficient permissions.")
+    quests, total = await service.get_quests_page(page, size, status, group_id, creator_id, name)
+    quest_dtos = [QuestFullDto.model_validate(q) for q in quests]
+    return {
+        "items": [q.model_dump() for q in quest_dtos],
+        "total": total,
+        "page": page,
+        "size": size,
+        "total_pages": (total + size - 1) // size,
+    }
+
 
 @router.get("/{quest_public_id}", response_model=QuestSyncDTO, status_code=200)
 async def get_quest(
