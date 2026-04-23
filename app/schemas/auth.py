@@ -12,8 +12,8 @@ class TokenResponse(BaseModel):
 class AuthResponse(BaseModel):
     session_token: str
     username: str | None
-    #phone_number: str | None
-    #role: UserRole
+    phone_number: str | None
+    role: UserRole
     public_id: uuid.UUID
     fcm_token: str
 
