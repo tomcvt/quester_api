@@ -7,6 +7,15 @@ from pydantic import BaseModel, ConfigDict
 
 from app.models.user import UserRole
 
+class UserFullDto(BaseModel):
+    id: int
+    username: str | None
+    phone_number: str | None
+    public_id: uuid.UUID
+    role: UserRole
+    installation_id: str | None
+    
+    model_config = ConfigDict(from_attributes=True)
 
 class UserDto(BaseModel):
     username: str | None

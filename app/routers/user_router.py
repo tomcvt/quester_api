@@ -5,7 +5,7 @@ from app.dependencies import get_current_user, get_user_service
 from app.exceptions import UnauthorizedException
 from app.models.user import User, UserRole
 from app.schemas.auth import ChangePhoneNumberRequest, ChangeUsernamePhoneRequest, ChangeUsernameRequest
-from app.schemas.user import UserDto, UsersSyncRequest, UsersSyncResponse
+from app.schemas.user import UserDto, UserFullDto, UsersSyncRequest, UsersSyncResponse
 from app.services.user_service import UserService
 
 
@@ -76,7 +76,7 @@ async def get_all_users(
     if current_user.role not in (UserRole.ADMIN, UserRole.SUPERUSER):
         raise UnauthorizedException("Insufficient permissions.")
     users, total = await service.get_users_page(page, size)
-    user_dtos = [UserDto.model_validate(u) for u in users]
+    user_dtos = [UserFullDto.model_validate(u) for u in users]
     return {
         "items": [u.model_dump() for u in user_dtos],
         "total": total,
