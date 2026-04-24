@@ -44,12 +44,15 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String, nullable=True)
     session_token: Mapped[str] = mapped_column(String, nullable=True)
     fcm_token: Mapped[str | None] = mapped_column(String, nullable=True)
+    oauth_provider: Mapped[str | None] = mapped_column(String, nullable=True)
+    oauth_sub: Mapped[str | None] = mapped_column(String, nullable=True, unique=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
     
     __table_args__ = (
         Index("ix_users_public_id", "public_id"),
         Index("ix_users_installation_id", "installation_id"),
+        Index("ix_users_oauth_sub", "oauth_sub")
     )
     
     def __repr__(self):
@@ -70,6 +73,8 @@ class UserX(BaseModel):
     api_key_hash: str | None
     session_token: str | None
     fcm_token: str | None
+    oauth_provider: str | None
+    oauth_sub: str | None
     created_at: datetime
     updated_at: datetime
     
@@ -86,6 +91,8 @@ class UserX(BaseModel):
             api_key_hash=user.api_key_hash,
             session_token=user.session_token,
             fcm_token=user.fcm_token,
+            oauth_provider=user.oauth_provider,
+            oauth_sub=user.oauth_sub,
             created_at=user.created_at,
             updated_at=user.updated_at
         )
@@ -101,3 +108,5 @@ class NewUser:
     api_key_hash: str | None = None
     password_hash: str | None = None
     session_token: str | None = None
+    oauth_provider: str | None = None
+    oauth_sub: str | None = None

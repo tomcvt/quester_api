@@ -3,6 +3,10 @@ from pydantic import BaseModel
 
 from app.models.user import UserRole
 
+class OAuthLoginRequest(BaseModel):
+    id_token: str
+    installation_id: str
+    fcm_token: str | None = None
 
 class TokenResponse(BaseModel):
     session_token: str
