@@ -1,8 +1,9 @@
 import uuid
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
-from loguru import logger
-from app.dependencies import get_current_user, get_quest_service, get_user_service
+
+# from loguru import logger
+from app.dependencies import get_current_user, get_quest_service
 from app.exceptions import UnauthorizedException
 from app.models.quest import Quest, QuestStatus
 from app.models.user import User, UserRole
@@ -18,23 +19,22 @@ async def create_quest(
     background_tasks: BackgroundTasks,
     current_user: User | None = Depends(get_current_user),
     service: QuestService = Depends(get_quest_service),
-    user_service = Depends(get_user_service)
 ):
     if not current_user:
         raise UnauthorizedException("User must be authenticated to create a quest.")
     quest: Quest = await service.create_quest_from_request(current_user, body, background_tasks)
-    creator_user: User | None = await user_service.get_user_by_id(quest.creator_id) if quest.creator_id else None
-    if not creator_user:
-        logger.error(f"Creator with id {quest.creator_id} not found when creating quest response.")
-        creatorPublicId = None
-    else:
-        creatorPublicId = creator_user.public_id
-    if not creatorPublicId:
-        logger.error(f"Creator public_id not found for user with id {quest.creator_id} when creating quest response.")
-        raise ValueError(f"Creator public_id not found for user with id {quest.creator_id} when creating quest response.")
-        
+    # creator_user: User | None = await user_service.get_user_by_id(quest.creator_id) if quest.creator_id else None
+    # if not creator_user:
+    #     logger.error(f"Creator with id {quest.creator_id} not found when creating quest response.")
+    #     creatorPublicId = None
+    # else:
+    #     creatorPublicId = creator_user.public_id
+    # if not creatorPublicId:
+    #     logger.error(f"Creator public_id not found for user with id {quest.creator_id} when creating quest response.")
+    #     raise ValueError(f"Creator public_id not found for user with id {quest.creator_id} when creating quest response.")
+
     response: CreateQuestResponse = CreateQuestResponse.from_orm_without_creator(quest)
-    response.creator_public_id = creatorPublicId
+    response.creator_public_id = current_user.public_id
     
     return response
 
@@ -111,6 +111,6 @@ async def delete_quest(
     service: QuestService = Depends(get_quest_service)
 ):
     if not current_user:
-        raise UnauthorizedException("User must be authenticated to delete a quest.")
+        raise UnauthorizedException("User must be authenticated to delete or cancel a quest.")
     await service.delete_quest_by_public_id(current_user, quest_public_id, background_tasks)
     return

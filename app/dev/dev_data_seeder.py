@@ -11,7 +11,7 @@ from loguru import logger
 
 from app.core.config import globalSettings
 from app.models.group import Group
-from app.models.quest import NewQuest, QuestStatus, QuestType
+from app.models.quest import NewQuest, QuestStatus, RewardType
 from app.models.user import User
 from app.repositories.group_member_repository import GroupMemberRepository
 from app.repositories.group_repository import GroupRepository
@@ -110,16 +110,19 @@ class DevDataSeeder:
             group_id=group.id,
             name="Test Quest",
             description="This is a test quest.",
-            date=datetime.utcnow(),
-            deadline_start=datetime.utcnow() + timedelta(minutes=2),
-            deadline_end=datetime.utcnow() + timedelta(minutes=10),
+            start_time=None,
+            # date=datetime.utcnow(),
+            # deadline_start=datetime.utcnow() + timedelta(minutes=2),
+            # deadline_end=datetime.utcnow() + timedelta(minutes=10),
+            deadline=datetime.utcnow() + timedelta(minutes=10),
             address=None,
-            contact_number=None,
-            contact_info=None,
+            # contact_number=None,
+            # contact_info=None,
             data=None,
-            type=QuestType.JOB,
+            reward_type=RewardType.NONE,
+            reward_value=None,
             inclusive=False,
-            status=QuestStatus.STARTED,
+            status=QuestStatus.OPEN,
             creator_id=creator_user.id
         )
         quest = await self.quest_service.create_quest(creator_user, new_quest)

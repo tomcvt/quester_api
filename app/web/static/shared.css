@@ -275,11 +275,15 @@ td.uuid { font-family: monospace; font-size: 0.75rem; color: #64748b; }
 td.null { color: #4b5563; font-style: italic; }
 
 /* Quest status colours */
-td.status-STARTED   { color: #60a5fa; }
+/* td.status-STARTED   { color: #60a5fa; } */
+td.status-CREATED   { color: #93c5fd; }
+td.status-OPEN      { color: #60a5fa; }
 td.status-ACCEPTED  { color: #a3e635; }
 td.status-COMPLETED { color: #34d399; }
-td.status-DELETED   { color: #f87171; }
-td.status-TIMED_OUT { color: #fb923c; }
+/* td.status-DELETED   { color: #f87171; } */
+/* td.status-TIMED_OUT { color: #fb923c; } */
+td.status-CANCELLED { color: #f87171; }
+td.status-EXPIRED   { color: #fb923c; }
 
 /* User role colours */
 td.role-user      { color: #94a3b8; }

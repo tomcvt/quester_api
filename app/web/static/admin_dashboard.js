@@ -18,12 +18,15 @@ const USER_COLUMNS = [
 const QUEST_COLUMNS = [
   { key: 'id',           label: 'ID' },
   { key: 'name',         label: 'Name' },
-  { key: 'type',         label: 'Type' },
+  // { key: 'type',         label: 'Type' },
+  { key: 'reward_type',  label: 'Reward Type' },
+  { key: 'reward_value', label: 'Reward Value' },
   { key: 'status',       label: 'Status' },
   { key: 'group_id',     label: 'Group ID' },
   { key: 'creator_id',   label: 'Creator ID' },
-  { key: 'date',         label: 'Date' },
-  { key: 'deadline_end', label: 'Deadline' },
+  // { key: 'date',         label: 'Date' },
+  // { key: 'deadline_end', label: 'Deadline' },
+  { key: 'deadline',     label: 'Deadline' },
   { key: 'public_id',    label: 'Public ID' },
 ];
 

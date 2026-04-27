@@ -173,6 +173,7 @@ class NotificationService:
             logger.error(f"Failed to send YOUR_QUEST_COMPLETED to creator {creator.username} for quest {quest.name}: {str(e)}")
     
     async def notify_group_members_of_deleted_quest(self, questEvent: QuestUpdateEvent):
+        # TODO [PENDING]: quest cancellation now maps here temporarily; payload/event naming still says deleted.
         gm_w_user_details = await self.gm_repo.fetch_group_members_w_details_by_group_id(questEvent.group_id)
         valid_tokens = [member.user.fcm_token for member in gm_w_user_details if member.user.fcm_token and member.user.public_id != questEvent.source_user_public_id]
         skipped_users = [
