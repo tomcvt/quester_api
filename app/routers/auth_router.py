@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import RedirectResponse
 from loguru import logger
-from app.schemas.auth import AuthRequest, AuthResponse, RegistrationRequest, RegistrationResponse, TokenResponse, WebLoginRequest, WebRegisterRequest
+from app.schemas.auth import AuthRequest, AuthResponse, OAuthLoginRequest, RegistrationRequest, RegistrationResponse, TokenResponse, WebLoginRequest, WebRegisterRequest
 from app.services.auth_service import AuthService
 from app.dependencies import get_auth_service
 from app.exceptions import InvalidCredentialsException
@@ -18,6 +18,15 @@ async def authenticate(
 ):
     response = await service.authenticate_user(body)
     logger.info("User authenticated successfully: {}", response.username)
+    return response
+
+@router.post("/oauth-login/google", response_model=AuthResponse, status_code=status.HTTP_200_OK)
+async def google_oauth_login(
+    body: OAuthLoginRequest,
+    service: AuthService = Depends(get_auth_service)
+):
+    response = await service.google_oauth_login(body)
+    logger.info("User authenticated via Google OAuth successfully: {}", response.username)
     return response
 
 @router.post("/register", response_model=RegistrationResponse, status_code=status.HTTP_201_CREATED)

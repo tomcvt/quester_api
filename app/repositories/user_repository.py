@@ -36,11 +36,44 @@ class UserRepository:
         )
         return result.scalars().first()
     
+    async def get_by_oauth_sub(self, oauth_sub: str) -> User | None:
+        result = await self.db.execute(
+            select(User).where(User.oauth_sub == oauth_sub)
+        )
+        return result.scalars().first()
+    
     async def get_user_by_installation_id(self, installation_id: str) -> User | None:
         result = await self.db.execute(
             select(User).where(User.installation_id == installation_id)
         )
         return result.scalars().first()
+    
+    async def link_oauth(self, user_id: int, oauth_provider: str, oauth_sub: str, email: str | None = None) -> User:
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            raise ValueError("User not found")
+        user.oauth_provider = oauth_provider
+        user.oauth_sub = oauth_sub
+        if email:
+            user.email = email
+        self.db.add(user)
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user
+    
+    async def delete_user(self, user_id: int) -> None:
+        user = await self.get_user_by_id(user_id)
+        if not user:
+            raise ValueError("User not found")
+        await self.db.delete(user)
+        await self.db.commit()
+    
+    async def delete_user_by_installation_id(self, installation_id: str) -> None:
+        user = await self.get_user_by_installation_id(installation_id)
+        if not user:
+            raise ValueError("User not found")
+        await self.db.delete(user)
+        await self.db.commit()
     
     async def update_fcm_token(self, user_id: int, fcm_token: str) -> User:
         user = await self.get_user_by_id(user_id)

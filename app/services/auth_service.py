@@ -2,10 +2,12 @@ import uuid
 
 from loguru import logger
 
+from app.core.config import globalSettings
+from app.core.oauth import OAuthClaims, verify_google_token
 from app.exceptions import InvalidCredentialsException, UserAlreadyExistsException, UserNotFoundException
 from app.models.user import NewUser, User, UserRole
 from app.repositories.user_repository import UserRepository
-from app.schemas.auth import AuthRequest, AuthResponse, RegistrationRequest, RegistrationResponse, WebLoginRequest, WebRegisterRequest
+from app.schemas.auth import AuthRequest, AuthResponse, OAuthLoginRequest, RegistrationRequest, RegistrationResponse, WebLoginRequest, WebRegisterRequest
 from app.utils import gen_utils
 
 reserved_uuids = [
@@ -39,6 +41,7 @@ class AuthService:
             await self.user_repo.update_session_token(user.id, newSessionToken)
             return AuthResponse(
                 session_token=newSessionToken,
+                installation_id=user.installation_id,
                 username=user.username,
                 phone_number=user.phone_number,
                 public_id=user.public_id,
@@ -51,12 +54,85 @@ class AuthService:
             #for simplicty we will return empty response
             return AuthResponse(
                 session_token='',
+                installation_id='',
                 username='',
                 phone_number=None,    
                 public_id=uuid.NIL,
                 fcm_token='',
                 role=UserRole.USER
             )
+    '''
+    The OAuth login flow is designed to handle several scenarios gracefully:
+    For now for simplicity we will delete the previous client side user and return already linked
+    user by installation id, but in future we can implement proper account merging and linking flow.
+    '''
+    
+    async def google_oauth_login(self, request: OAuthLoginRequest) -> AuthResponse:
+    # Step 1: Verify the token — throws if invalid
+        claims: OAuthClaims = verify_google_token(request.id_token, globalSettings.google_client_id)
+        
+        # Step 2: Look up by oauth_sub first
+        existing_oauth_user = await self.user_repo.get_by_oauth_sub(claims.sub)
+        
+        if existing_oauth_user and existing_oauth_user.installation_id != request.installation_id:
+            logger.warning("OAuth sub {} is already linked to a different installation ID {}. Deleting old user and proceeding with new registration.", claims.sub, existing_oauth_user.installation_id)
+            await self.user_repo.delete_user_by_installation_id(request.installation_id)
+            #TODO we need to gracefully handle deletion
+        
+        if existing_oauth_user:
+            # This OAuth identity is already linked to an account.
+            # Could be same device or different device — doesn't matter.
+            # Just issue a new session for that user.
+            return await self._issue_session(existing_oauth_user, request.fcm_token)
+        
+        # Step 3: No OAuth link yet. Does this installation already have a user?
+        existing_install_user = await self.user_repo.get_user_by_installation_id(
+            request.installation_id
+        )
+        
+        if existing_install_user:
+            # Account linking: tie this Google identity to the existing user.
+            # From now on, any device logging in with this Google account
+            # will find this user via Step 2.
+            logger.info("Linking OAuth sub {} to existing user with installation ID {}.", claims.sub, request.installation_id)
+            await self.user_repo.link_oauth(
+                existing_install_user.id,
+                claims.provider,
+                claims.sub,
+                claims.email #request.email is optional, but we can update email if it's not set or different from claims.email
+            )
+            return await self._issue_session(existing_install_user, request.fcm_token)
+        
+        #For now if we come here something is wrong
+        raise UserNotFoundException("No user found for this OAuth identity, and no existing account to link to. Please register first.")
+        # Step 4: Brand new user via OAuth (no prior installation_id user).
+        new_user = await self.user_repo.create_user(User.new(NewUser(
+            installation_id=request.installation_id,
+            device_id=request.installation_id,  # or generate separately #TODO
+            oauth_sub=claims.sub,
+            oauth_provider=claims.provider,
+            email=request.email
+        )))
+        return await self._issue_session(new_user, request.fcm_token)
+    
+    async def _issue_session(self, user: User, fcm_token: str | None) -> AuthResponse:
+        session_token = gen_utils.generate_session_token()
+        await self.user_repo.update_session_token(user.id, session_token)
+        if fcm_token and user.fcm_token != fcm_token:
+            logger.info("Updating FCM token for user {}: {} -> {}", user.username, user.fcm_token, fcm_token)
+            await self.user_repo.update_fcm_token(user.id, fcm_token)
+        else:
+            logger.info("FCM token is unchanged for user {}: {}", user.username, user.fcm_token)
+        return AuthResponse(
+            session_token=session_token,
+            installation_id=user.installation_id,
+            username=user.username,
+            phone_number=user.phone_number,
+            public_id=user.public_id,
+            fcm_token=user.fcm_token if user.fcm_token else '',
+            role=user.role,
+            oauth_provider=user.oauth_provider
+        )
     
     async def register_user(self, request: RegistrationRequest) -> User:
         existing_user = await self.user_repo.get_user_by_installation_id(request.installation_id)

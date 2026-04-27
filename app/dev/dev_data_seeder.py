@@ -9,6 +9,7 @@ from fastapi.concurrency import asynccontextmanager
 from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
 
+from app.core.config import globalSettings
 from app.models.group import Group
 from app.models.quest import NewQuest, QuestStatus, QuestType
 from app.models.user import User
@@ -100,6 +101,9 @@ class DevDataSeeder:
         )
         logger.info(f"Created group: {group.name} with public_id: {group.public_id}")
         logger.info(f"User {user1.username} and {user2.username} joined the group {group.name}")
+        google_client_id = globalSettings.google_client_id
+        logger.info(f"Google Client ID from settings: {google_client_id}")
+        
     
     async def create_quest_for_testing(self, creator_user: User, group: Group):
         new_quest = NewQuest(
@@ -139,9 +143,9 @@ class DevDataSeeder:
 @asynccontextmanager
 async def dev_data_seeder_lifespan(app: FastAPI):
     from app.core.database import AsyncSessionLocal
-    from app.core.config import settings
+    from app.core.config import globalSettings
 
-    if settings.persistence_mode in ('memory', 'sqlite'):
+    if globalSettings.persistence_mode in ('memory', 'sqlite'):
         async with AsyncSessionLocal() as session:
             seeder = DevDataSeeder(db=session)
             await seeder.seed()

@@ -6,6 +6,7 @@ from app.models.user import UserRole
 class OAuthLoginRequest(BaseModel):
     id_token: str
     installation_id: str
+    email: str | None = None
     fcm_token: str | None = None
 
 class TokenResponse(BaseModel):
@@ -15,11 +16,14 @@ class TokenResponse(BaseModel):
 
 class AuthResponse(BaseModel):
     session_token: str
+    installation_id: str
     username: str | None
     phone_number: str | None
     role: UserRole
     public_id: uuid.UUID
-    fcm_token: str
+    email: str | None = None
+    fcm_token: str | None = None
+    oauth_provider: str | None = None
 
 class AuthRequest(BaseModel):
     device_id: str | None = None

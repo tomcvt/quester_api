@@ -8,9 +8,10 @@ class Settings(BaseSettings):
     sqlite_url: str
     secret_key: str
     firebase_credentials_path: str
+    google_client_id: str
     reserved_installation_ids: list[str] = [str(uuid.UUID(int=i)) for i in range(20)]
 
     class Config:
         env_file = ".env"
 
-settings = Settings() # pyright: ignore[reportCallIssue]
+globalSettings = Settings() # pyright: ignore[reportCallIssue]

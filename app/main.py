@@ -18,7 +18,7 @@ from app.routers.group_router import router as group_router
 from app.routers.user_router import router as user_router
 from app.routers.auth_router import router as auth_router
 from app.web.web_router import router as web_router
-from app.core.config import settings
+from app.core.config import globalSettings
 from app.core.firebase import firebase_lifespan
 from app.dev.dev_data_seeder import dev_data_seeder_lifespan
 

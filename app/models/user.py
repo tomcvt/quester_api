@@ -26,6 +26,7 @@ class User(Base):
             installation_id=user.installation_id,
             username=user.username,
             phone_number=user.phone_number,
+            email=user.email,
             public_id=uuid.uuid4(),
             fcm_token=user.fcm_token,
             api_key_hash=user.api_key_hash,
@@ -39,6 +40,7 @@ class User(Base):
     username: Mapped[str] = mapped_column(String, nullable=True)
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False)
     phone_number: Mapped[str] = mapped_column(String, nullable=True)
+    email: Mapped[str] = mapped_column(String, nullable=True)
     public_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True, native_uuid=False), unique=True, nullable=False)
     api_key_hash: Mapped[str] = mapped_column(String, nullable=True)
     password_hash: Mapped[str] = mapped_column(String, nullable=True)
@@ -60,7 +62,7 @@ class User(Base):
     
     '''Intentionally shortened representation for __str__'''
     def __str__(self):
-        return f"User(id={self.id},\n device_id='{self.device_id}',\n installation_id='{self.installation_id}',\n username='{self.username}',\n phone_number='{self.phone_number}',\n public_id='{self.public_id}',\n role='{self.role}')"
+        return f"User(id={self.id},\n device_id='{self.device_id}',\n installation_id='{self.installation_id}',\n username='{self.username}',\n phone_number='{self.phone_number}',\n email='{self.email}',\n public_id='{self.public_id}',\n role='{self.role}')"
 
 class UserX(BaseModel):
     id: int
@@ -69,6 +71,7 @@ class UserX(BaseModel):
     username: str | None
     role: UserRole
     phone_number: str | None
+    email: str | None
     public_id: uuid.UUID
     api_key_hash: str | None
     session_token: str | None
@@ -87,6 +90,7 @@ class UserX(BaseModel):
             username=user.username,
             role=user.role,
             phone_number=user.phone_number,
+            email=user.email,
             public_id=user.public_id,
             api_key_hash=user.api_key_hash,
             session_token=user.session_token,
@@ -104,6 +108,7 @@ class NewUser:
     username: str | None = None
     role: UserRole = UserRole.USER
     phone_number: str | None = None
+    email: str | None = None
     fcm_token: str | None = None
     api_key_hash: str | None = None
     password_hash: str | None = None
