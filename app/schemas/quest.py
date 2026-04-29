@@ -164,7 +164,7 @@ class QuestFullDto(BaseModel):
     group_id: int
     name: str
     description: str | None
-    start_time: datetime | None
+    start_time: datetime
     deadline: datetime | None
     address: str | None
     data: JsonValue
@@ -198,7 +198,7 @@ class CreateQuestResponse(BaseModel):
     public_id: uuid.UUID
     name: str
     description: str | None
-    start_time: datetime | None
+    start_time: datetime
     deadline: datetime | None
     address: str | None
     data: JsonValue
@@ -237,7 +237,7 @@ class QuestSyncDTO(BaseModel):
     public_id: uuid.UUID
     name: str
     description: str | None
-    start_time: datetime | None
+    start_time: datetime
     deadline: datetime | None
     address: str | None
     data: JsonValue
@@ -261,7 +261,7 @@ class QuestWithUserPId:
     public_id: uuid.UUID
     name: str
     description: str | None
-    start_time: datetime | None
+    start_time: datetime
     deadline: datetime | None
     address: str | None
     data: JsonValue

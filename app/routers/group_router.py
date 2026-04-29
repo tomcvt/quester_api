@@ -8,7 +8,7 @@ from app.schemas.group import CreateGroupRequest, GroupJoinRequest, GroupRespons
 from app.schemas.group_member import GroupMembersSyncResponse, GroupMembersSyncResponse
 from app.schemas.quest import QuestSyncResponse
 from app.services.group_service import GroupService
-from app.dependencies import get_group_service, get_current_user
+from app.dependencies import CurrentUser, GroupServiceDep
 from app.exceptions import GroupNameTakenException, UnauthorizedException
 
 router = APIRouter(prefix="/groups", tags=["groups"])
@@ -16,8 +16,8 @@ router = APIRouter(prefix="/groups", tags=["groups"])
 @router.post("/create", response_model=GroupResponse, status_code=status.HTTP_201_CREATED)
 async def create_group(
     body: CreateGroupRequest,
-    current_user=Depends(get_current_user),
-    service: GroupService = Depends(get_group_service)
+    current_user: CurrentUser,
+    service: GroupServiceDep,
 ):
     logger.info("User {} is creating group with name '{}'", current_user.username, body.name)
     logger.debug("current user: {}", current_user)
@@ -27,8 +27,9 @@ async def create_group(
 @router.get("/{group_public_id}/members", response_model=GroupMembersSyncResponse)
 async def get_group_members(
     group_public_id: uuid.UUID,
+    current_user: CurrentUser,
     since: datetime | None = None,
-    service: GroupService = Depends(get_group_service)
+    service: GroupServiceDep = None,  # type: ignore[assignment]
 ):
     #safety net, TODO pagination
     #TODO add user check if member
@@ -44,8 +45,8 @@ async def get_group_members(
 async def join_group_public(
     group_public_id: uuid.UUID,
     #background_tasks: BackgroundTasks,
-    current_user=Depends(get_current_user),
-    service: GroupService = Depends(get_group_service)
+    current_user: CurrentUser,
+    service: GroupServiceDep,
 ):
     raise HTTPException(status_code=400, detail="Joining groups by public_id is not allowed. Please join by group name and password.")
     logger.info("User {} is joining group with public_id '{}'", current_user.username, group_public_id)
@@ -56,8 +57,8 @@ async def join_group_public(
 async def join_group(
     body: GroupJoinRequest,
     background_tasks: BackgroundTasks,
-    current_user=Depends(get_current_user),
-    service: GroupService = Depends(get_group_service)
+    current_user: CurrentUser,
+    service: GroupServiceDep,
 ):
     logger.info("User {} is joining group with name '{}'", current_user.username, body.name)
     group = await service.join_group_with_password(current_user, body.name, body.password, background_tasks)
@@ -67,8 +68,8 @@ async def join_group(
 async def leave_group(
     group_public_id: uuid.UUID,
     background_tasks: BackgroundTasks,
-    current_user=Depends(get_current_user),
-    service: GroupService = Depends(get_group_service)
+    current_user: CurrentUser,
+    service: GroupServiceDep,
 ):
     logger.info("User {} is leaving group with public_id '{}'", current_user.username, group_public_id)
     await service.leave_group(current_user, group_public_id, background_tasks)
@@ -77,8 +78,9 @@ async def leave_group(
 @router.get("/{group_public_id}/quests", response_model=QuestSyncResponse)
 async def get_group_quests(
     group_public_id: uuid.UUID,
+    current_user: CurrentUser,
     since: datetime | None = None,
-    service: GroupService = Depends(get_group_service)
+    service: GroupServiceDep = None,  # type: ignore[assignment]
 ):
     #safety net, TODO pagination
     if since is None:
@@ -93,11 +95,9 @@ async def set_user_role(
     group_public_id: uuid.UUID,
     body: SetRoleRequest,
     background_tasks: BackgroundTasks,
-    current_user=Depends(get_current_user),
-    service: GroupService = Depends(get_group_service)
+    current_user: CurrentUser,
+    service: GroupServiceDep,
 ):
-    if current_user is None:
-        raise UnauthorizedException("User must be authenticated to set user roles.")
     try:
         roleEnum = MemberRole(body.role)
     except ValueError:

@@ -65,7 +65,7 @@ class DevDataSeeder:
             device_id="superuser_device",
             installation_id=str(uuid.UUID(int=7)),
             username="superuser",
-            password="125", #TODO
+            password=globalSettings.superuser_password, #TODO
             phone_number="0000000000"
         )
         registration_request_1 = RegistrationRequest(

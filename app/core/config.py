@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     firebase_credentials_path: str
     google_client_id: str
     reserved_installation_ids: list[str] = [str(uuid.UUID(int=i)) for i in range(20)]
+    superuser_password: str
 
     class Config:
         env_file = ".env"

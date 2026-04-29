@@ -353,18 +353,23 @@ class QuestService:
         group_id = await self.group_repo.get_group_id_by_public_id(quest_request.group_public_id)
         if not group_id:
             raise BadRequestException(f"Group with public_id {quest_request.group_public_id} not found.")
-        if quest_request.start_time is not None and quest_request.status != QuestStatus.CREATED:
-            raise BadRequestException("Quest with start_time must be created with status CREATED.")
-        if quest_request.status == QuestStatus.CREATED and quest_request.start_time is None:
-            raise BadRequestException("Quest with status CREATED must provide start_time.")
-        if quest_request.start_time is not None and quest_request.start_time <= datetime.utcnow():
-            raise BadRequestException("Quest start_time must be in the future.")
+
+        if quest_request.status == QuestStatus.OPEN:
+            effective_start_time = datetime.utcnow()
+        elif quest_request.status == QuestStatus.CREATED:
+            if quest_request.start_time is None:
+                raise BadRequestException("Quest with status CREATED must provide start_time.")
+            if quest_request.start_time <= datetime.utcnow():
+                raise BadRequestException("Quest start_time must be in the future.")
+            effective_start_time = quest_request.start_time
+        else:
+            raise BadRequestException("Quests can only be created with status OPEN or CREATED.")
 
         new_quest = NewQuest(
             group_id=group_id,
             name=quest_request.name,
             description=quest_request.description,
-            start_time=quest_request.start_time,
+            start_time=effective_start_time,
             deadline=quest_request.deadline,
             address=quest_request.address,
             data=quest_request.data,

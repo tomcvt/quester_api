@@ -214,7 +214,8 @@ class Quest(Base):
     __tablename__ = "quests"
     # TODO [WARNING]: the database table still needs a real schema migration from the legacy quest columns
     # to deadline/start_time/data/reward_type/reward_value and the new status set. Commenting old Python code does not
-    # migrate persisted data.
+    # migrate persisted data. start_time is now non-nullable; existing NULL rows must be backfilled before the
+    # NOT NULL constraint is applied in the DB.
 
     @staticmethod
     def new(quest: "NewQuest") -> "Quest":
@@ -223,7 +224,7 @@ class Quest(Base):
             public_id=uuid.uuid4(),
             name=quest.name,
             description=quest.description,
-            start_time=quest.start_time,
+            start_time=quest.start_time if quest.start_time else None,
             deadline=quest.deadline,
             address=quest.address,
             data=quest.data,
@@ -240,7 +241,7 @@ class Quest(Base):
     public_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True, native_uuid=False), default=uuid.uuid4, unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(String, nullable=True)
-    start_time: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    start_time: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     deadline: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     address: Mapped[str | None] = mapped_column(String, nullable=True)
     data: Mapped[JsonValue] = mapped_column(JSON, nullable=True)
@@ -271,7 +272,7 @@ class QuestX(BaseModel):
     public_id: uuid.UUID
     name: str
     description: str | None
-    start_time: datetime | None
+    start_time: datetime
     deadline: datetime | None
     address: str | None
     data: JsonValue

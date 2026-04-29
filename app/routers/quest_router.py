@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
 
 # from loguru import logger
-from app.dependencies import get_current_user, get_quest_service
+from app.dependencies import CurrentAdminOrSuperuser, CurrentUser, CurrentUserOptional, QuestServiceDep
 from app.exceptions import UnauthorizedException
 from app.models.quest import Quest, QuestStatus
 from app.models.user import User, UserRole
@@ -17,22 +17,10 @@ router = APIRouter(prefix="/quests", tags=["quests"])
 async def create_quest(
     body: CreateQuestRequest,
     background_tasks: BackgroundTasks,
-    current_user: User | None = Depends(get_current_user),
-    service: QuestService = Depends(get_quest_service),
+    current_user: CurrentUser,
+    service: QuestServiceDep,
 ):
-    if not current_user:
-        raise UnauthorizedException("User must be authenticated to create a quest.")
     quest: Quest = await service.create_quest_from_request(current_user, body, background_tasks)
-    # creator_user: User | None = await user_service.get_user_by_id(quest.creator_id) if quest.creator_id else None
-    # if not creator_user:
-    #     logger.error(f"Creator with id {quest.creator_id} not found when creating quest response.")
-    #     creatorPublicId = None
-    # else:
-    #     creatorPublicId = creator_user.public_id
-    # if not creatorPublicId:
-    #     logger.error(f"Creator public_id not found for user with id {quest.creator_id} when creating quest response.")
-    #     raise ValueError(f"Creator public_id not found for user with id {quest.creator_id} when creating quest response.")
-
     response: CreateQuestResponse = CreateQuestResponse.from_orm_without_creator(quest)
     response.creator_public_id = current_user.public_id
     
@@ -42,11 +30,9 @@ async def create_quest(
 async def accept_quest(
     quest_public_id: uuid.UUID,
     background_tasks: BackgroundTasks,
-    current_user: User | None = Depends(get_current_user),
-    service: QuestService = Depends(get_quest_service)
+    current_user: CurrentUser,
+    service: QuestServiceDep,
 ):
-    if not current_user:
-        raise UnauthorizedException("User must be authenticated to accept a quest.")
     updated_quest = await service.accept_quest(current_user, quest_public_id, background_tasks)
     if not updated_quest:
         raise Exception("Failed to accept quest.")
@@ -56,11 +42,9 @@ async def accept_quest(
 async def complete_quest(
     quest_public_id: uuid.UUID,
     background_tasks: BackgroundTasks,
-    current_user: User | None = Depends(get_current_user),
-    service: QuestService = Depends(get_quest_service)
+    current_user: CurrentUser,
+    service: QuestServiceDep,
 ):
-    if not current_user:
-        raise UnauthorizedException("User must be authenticated to complete a quest.")
     updated_quest = await service.complete_quest(current_user, quest_public_id, background_tasks)
     if not updated_quest:
         raise Exception("Failed to complete quest.")
@@ -68,19 +52,15 @@ async def complete_quest(
 
 @router.get("/all", response_model=dict, status_code=200)
 async def get_all_quests(
+    current_user: CurrentAdminOrSuperuser,
+    service: QuestServiceDep,
     page: int = Query(0, ge=0, description="Zero-based page number"),
     size: int = Query(20, ge=1, le=100, description="Page size (max 100)"),
     status: QuestStatus | None = Query(None),
     group_id: int | None = Query(None),
     creator_id: int | None = Query(None),
     name: str | None = Query(None, max_length=200),
-    current_user: User | None = Depends(get_current_user),
-    service: QuestService = Depends(get_quest_service),
 ):
-    if not current_user:
-        raise UnauthorizedException("Authentication required.")
-    if current_user.role not in (UserRole.ADMIN, UserRole.SUPERUSER):
-        raise UnauthorizedException("Insufficient permissions.")
     quests, total = await service.get_quests_page(page, size, status, group_id, creator_id, name)
     quest_dtos = [QuestFullDto.model_validate(q) for q in quests]
     return {
@@ -95,8 +75,8 @@ async def get_all_quests(
 @router.get("/{quest_public_id}", response_model=QuestSyncDTO, status_code=200)
 async def get_quest(
     quest_public_id: str,
-    current_user: User | None = Depends(get_current_user),
-    service: QuestService = Depends(get_quest_service)
+    current_user: CurrentUserOptional,
+    service: QuestServiceDep,
 ):
     quest_dto = await service.get_quest_dto_by_public_id(uuid.UUID(quest_public_id))
     if not quest_dto:
@@ -107,10 +87,8 @@ async def get_quest(
 async def delete_quest(
     quest_public_id: uuid.UUID,
     background_tasks: BackgroundTasks,
-    current_user: User | None = Depends(get_current_user),
-    service: QuestService = Depends(get_quest_service)
+    current_user: CurrentUser,
+    service: QuestServiceDep,
 ):
-    if not current_user:
-        raise UnauthorizedException("User must be authenticated to delete or cancel a quest.")
     await service.delete_quest_by_public_id(current_user, quest_public_id, background_tasks)
     return

@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse
 from loguru import logger
 from app.schemas.auth import AuthRequest, AuthResponse, OAuthLoginRequest, RegistrationRequest, RegistrationResponse, TokenResponse, WebLoginRequest, WebRegisterRequest
 from app.services.auth_service import AuthService
-from app.dependencies import get_auth_service
+from app.dependencies import AuthServiceDep
 from app.exceptions import InvalidCredentialsException
 from app.web.session import create_session
 
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/authenticate", response_model=AuthResponse, status_code=status.HTTP_200_OK)
 async def authenticate(
     body: AuthRequest,
-    service: AuthService = Depends(get_auth_service)
+    service: AuthServiceDep,
 ):
     response = await service.authenticate_user(body)
     logger.info("User authenticated successfully: {}", response.username)
@@ -23,7 +23,7 @@ async def authenticate(
 @router.post("/oauth-login/google", response_model=AuthResponse, status_code=status.HTTP_200_OK)
 async def google_oauth_login(
     body: OAuthLoginRequest,
-    service: AuthService = Depends(get_auth_service)
+    service: AuthServiceDep,
 ):
     response = await service.google_oauth_login(body)
     logger.info("User authenticated via Google OAuth successfully: {}", response.username)
@@ -32,7 +32,7 @@ async def google_oauth_login(
 @router.post("/register", response_model=RegistrationResponse, status_code=status.HTTP_201_CREATED)
 async def register(
     body: RegistrationRequest,
-    service: AuthService = Depends(get_auth_service)
+    service: AuthServiceDep,
 ):
     #response = await service.register_user(body)
     newUser = await service.register_user(body)
@@ -49,7 +49,7 @@ async def register(
 async def web_login(
     body: WebLoginRequest,
     response: Response,
-    service: AuthService = Depends(get_auth_service)
+    service: AuthServiceDep,
 ):
     try:
         user = await service.web_login(body)
@@ -66,7 +66,7 @@ async def web_login(
 async def web_register(
     body: WebRegisterRequest,
     response: Response,
-    service: AuthService = Depends(get_auth_service)
+    service: AuthServiceDep,
 ):
     user = await service.web_register(body)
     redirect = RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
