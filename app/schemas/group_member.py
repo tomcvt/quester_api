@@ -11,6 +11,7 @@ class GroupMemberSyncDTO(BaseModel):
     user_public_id: uuid.UUID
     role: MemberRole
     username: str
+    currency: int = 0
     updated_at: datetime
     
     model_config = ConfigDict(from_attributes=True)
@@ -25,6 +26,7 @@ class GroupMemberWithUserSlim:
     updated_at: datetime
     username: str
     user_public_id: uuid.UUID
+    currency: int = 0
 
 @dataclass
 class GroupMemberWithUser:

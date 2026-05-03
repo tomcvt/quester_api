@@ -206,6 +206,7 @@ class QuestStatus(enum.Enum):
     OPEN = "OPEN"
     ACCEPTED = "ACCEPTED"
     COMPLETED = "COMPLETED"
+    REWARDED = "REWARDED"
     CANCELLED = "CANCELLED"
     EXPIRED = "EXPIRED"
 
@@ -231,6 +232,7 @@ class Quest(Base):
             reward_type=quest.reward_type,
             reward_value=quest.reward_value,
             inclusive=quest.inclusive,
+            automatic_reward=quest.automatic_reward,
             status=quest.status,
             creator_id=quest.creator_id,
             accepted_by_id=quest.accepted_by_id,
@@ -248,6 +250,7 @@ class Quest(Base):
     reward_type: Mapped[RewardType] = mapped_column(Enum(RewardType), nullable=False, default=RewardType.NONE)
     reward_value: Mapped[str | None] = mapped_column(String, nullable=True)
     inclusive: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    automatic_reward: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default='1')
     status: Mapped[QuestStatus] = mapped_column(Enum(QuestStatus), nullable=False)
     creator_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     accepted_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
@@ -323,6 +326,7 @@ class NewQuest:
     status: QuestStatus
     creator_id: int
     accepted_by_id: int | None = None
+    automatic_reward: bool = True
 
 
 class UpdateQuest(BaseModel):

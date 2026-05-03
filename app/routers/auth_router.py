@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import RedirectResponse
 from loguru import logger
-from app.schemas.auth import AuthRequest, AuthResponse, OAuthLoginRequest, RegistrationRequest, RegistrationResponse, TokenResponse, WebLoginRequest, WebRegisterRequest
+from app.schemas.auth import AuthRequest, AuthResponse, OAuthLoginRequest, RegistrationRequest, RegistrationResponse, TokenResponse, UpdateFcmTokenRequest, WebLoginRequest, WebRegisterRequest
 from app.services.auth_service import AuthService
-from app.dependencies import AuthServiceDep
+from app.dependencies import AuthServiceDep, CurrentUser
 from app.exceptions import InvalidCredentialsException
 from app.web.session import create_session
 
@@ -73,3 +73,13 @@ async def web_register(
     create_session(user.id, redirect)
     logger.info("Web registration and session created for user: {}", user.username)
     return redirect
+
+@router.post("/update-fcm-token", status_code=status.HTTP_200_OK)
+async def update_fcm_token(
+    body: UpdateFcmTokenRequest,
+    current_user: CurrentUser,
+    service: AuthServiceDep,
+):
+    await service.update_fcm_token(current_user, body)
+    logger.info("FCM token updated for user: {}", current_user.username)
+    return {"message": "FCM token updated successfully"}

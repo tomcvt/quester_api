@@ -202,6 +202,38 @@ class NotificationService:
                 response.success_count, response.failure_count)
         except Exception as e:
             logger.error(f"Failed to send quest_deleted notification: {str(e)}")
+
+    async def notify_group_members_of_rewarded_quest(self, questEvent: QuestUpdateEvent):
+        gm_w_user_details = await self.gm_repo.fetch_group_members_w_details_by_group_id(questEvent.group_id)
+        valid_tokens = [member.user.fcm_token for member in gm_w_user_details if member.user.fcm_token]
+        skipped_users = [
+            member.user.username if member.user.username else 'Unknown' for member in gm_w_user_details
+            if not member.user.fcm_token or member.user.fcm_token.strip() == ''
+        ]
+        if skipped_users:
+            logger.warning(f"Skipping reward notification for users without FCM tokens: {', '.join(skipped_users)}")
+        if not valid_tokens:
+            logger.warning(f"No valid FCM tokens for QUEST_REWARDED in group_id {questEvent.group_id}.")
+            return
+        message = messaging.MulticastMessage(
+            tokens=valid_tokens,
+            data={
+                'type': 'QUEST_REWARDED',
+                'group_public_id': str(questEvent.group_public_id),
+                'quest_public_id': str(questEvent.public_id),
+                'accepted_by_public_id': str(questEvent.accepted_by_public_id) if questEvent.accepted_by_public_id else '',
+            },
+            android=self._make_android_config(),
+        )
+        try:
+            loop = asyncio.get_event_loop()
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                response = await loop.run_in_executor(executor, messaging.send_each_for_multicast, message)
+            logger.info("FCM quest_rewarded sent: {} success, {} fail",
+                response.success_count, response.failure_count)
+        except Exception as e:
+            logger.error(f"Failed to send quest_rewarded notification: {str(e)}")
+
     ''' TODO: This is currently only used for role changes, works for joining/leaving as well (for now only join)'''
     async def notify_user_role_changed(self, source_user: User, changed_user: User, group: Group, new_role: MemberRole | str):
         gm_w_user_details = await self.gm_repo.fetch_group_members_w_details_by_group_id(group.id)

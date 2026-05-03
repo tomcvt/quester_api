@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Sequence, Tuple
 import uuid
 
-from sqlalchemy import Row, select, update
+from sqlalchemy import Row, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from app.models import group
@@ -68,7 +68,8 @@ class GroupMemberRepository:
                 role=member.role,
                 updated_at=member.updated_at,
                 username=username,
-                user_public_id=user_public_id
+                user_public_id=user_public_id,
+                currency=member.currency,
             )
             for member, username, user_public_id in result.all()
         ]
@@ -136,6 +137,25 @@ class GroupMemberRepository:
             await self.db.rollback()
             raise
     
+    async def increment_currency(self, user_id: int, group_id: int, amount: int) -> bool:
+        try:
+            stm = (
+                update(GroupMember)
+                .where(
+                    GroupMember.user_id == user_id,
+                    GroupMember.group_id == group_id,
+                )
+                .values(currency=GroupMember.currency + amount, updated_at=datetime.now())
+                .execution_options(synchronize_session="fetch")
+            )
+            result = await self.db.execute(stm)
+            await self.db.commit()
+            rowcount = getattr(result, "rowcount", 0) or 0
+            return rowcount > 0
+        except IntegrityError:
+            await self.db.rollback()
+            raise
+
     async def fetch_group_ids_by_user_id(self, user_id: int) -> list[int]:
         result = await self.db.execute(
             select(GroupMember.group_id).where(GroupMember.user_id == user_id)

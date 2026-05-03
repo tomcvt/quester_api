@@ -12,6 +12,10 @@ class OAuthLoginRequest(BaseModel):
 class TokenResponse(BaseModel):
     session_token: str
 
+class UpdateFcmTokenRequest(BaseModel):
+    installation_id: str
+    fcm_token: str
+
 #TODO add proper login
 
 class AuthResponse(BaseModel):

@@ -7,7 +7,7 @@ from app.core.oauth import OAuthClaims, verify_google_token
 from app.exceptions import InvalidCredentialsException, UserAlreadyExistsException, UserNotFoundException
 from app.models.user import NewUser, User, UserRole
 from app.repositories.user_repository import UserRepository
-from app.schemas.auth import AuthRequest, AuthResponse, OAuthLoginRequest, RegistrationRequest, RegistrationResponse, WebLoginRequest, WebRegisterRequest
+from app.schemas.auth import AuthRequest, AuthResponse, OAuthLoginRequest, RegistrationRequest, RegistrationResponse, UpdateFcmTokenRequest, WebLoginRequest, WebRegisterRequest
 from app.utils import gen_utils
 
 reserved_uuids = [
@@ -157,6 +157,10 @@ class AuthService:
         created_user = await self.user_repo.create_user(User.new(new_user))
         logger.info(f"Registered new user: {created_user}")
         return created_user
+    
+    async def update_fcm_token(self, user: User, request: UpdateFcmTokenRequest) -> None:
+        await self.user_repo.update_fcm_token(user.id, request.fcm_token)
+        logger.info(f"Updated FCM token for user {user.username} to {request.fcm_token}")
 
     async def web_login(self, request: WebLoginRequest) -> User:
         """

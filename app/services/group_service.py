@@ -65,6 +65,7 @@ class GroupService:
                 user_public_id=member.user_public_id,
                 role=member.role,
                 username=member.username,
+                currency=member.currency,
                 updated_at=member.updated_at
             )
             for member in members_data
@@ -93,6 +94,7 @@ class GroupService:
                 reward_type=quest.reward_type,
                 reward_value=quest.reward_value,
                 inclusive=quest.inclusive,
+                automatic_reward=quest.automatic_reward,
                 status=quest.status,
                 creator_public_id=quest.creator_public_id,
                 created_at=quest.created_at,

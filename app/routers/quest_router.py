@@ -26,6 +26,18 @@ async def create_quest(
     
     return response
 
+@router.post("/{quest_public_id}/open", response_model=QuestSyncDTO, status_code=200)
+async def open_quest(
+    quest_public_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    current_user: CurrentUser,
+    service: QuestServiceDep,
+):
+    updated_quest = await service.open_quest(current_user, quest_public_id, background_tasks)
+    if not updated_quest:
+        raise Exception("Failed to open quest.")
+    return await service.get_quest_dto_by_public_id(quest_public_id)
+
 @router.post("/{quest_public_id}/accept", response_model=QuestSyncDTO, status_code=200)
 async def accept_quest(
     quest_public_id: uuid.UUID,
@@ -48,6 +60,18 @@ async def complete_quest(
     updated_quest = await service.complete_quest(current_user, quest_public_id, background_tasks)
     if not updated_quest:
         raise Exception("Failed to complete quest.")
+    return await service.get_quest_dto_by_public_id(quest_public_id)
+
+@router.post("/{quest_public_id}/reward", response_model=QuestSyncDTO, status_code=200)
+async def reward_quest(
+    quest_public_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    current_user: CurrentUser,
+    service: QuestServiceDep,
+):
+    updated_quest = await service.reward_quest(current_user, quest_public_id, background_tasks)
+    if not updated_quest:
+        raise Exception("Failed to reward quest.")
     return await service.get_quest_dto_by_public_id(quest_public_id)
 
 @router.get("/all", response_model=dict, status_code=200)
@@ -75,7 +99,7 @@ async def get_all_quests(
 @router.get("/{quest_public_id}", response_model=QuestSyncDTO, status_code=200)
 async def get_quest(
     quest_public_id: str,
-    current_user: CurrentUserOptional,
+    current_user: CurrentAdminOrSuperuser,
     service: QuestServiceDep,
 ):
     quest_dto = await service.get_quest_dto_by_public_id(uuid.UUID(quest_public_id))

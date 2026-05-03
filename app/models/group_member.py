@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import enum
 from datetime import datetime
 from pydantic import BaseModel
-from sqlalchemy import String, Enum, ForeignKey, DateTime, UniqueConstraint, Index
+from sqlalchemy import Integer, String, Enum, ForeignKey, DateTime, UniqueConstraint, Index
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 from app.models.base import Base
@@ -19,6 +19,7 @@ class GroupMember(Base):
     group_id: Mapped[int] = mapped_column(ForeignKey("groups.id"), nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     role: Mapped[MemberRole] = mapped_column(Enum(MemberRole), nullable=False)
+    currency: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default='0')
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
     __table_args__ = (

@@ -191,6 +191,7 @@ class CreateQuestRequest(BaseModel):
     reward_type: RewardType = RewardType.NONE
     reward_value: str | None = None
     inclusive: bool
+    automatic_reward: bool = True
     status: QuestStatus = QuestStatus.OPEN
 
 
@@ -205,6 +206,7 @@ class CreateQuestResponse(BaseModel):
     reward_type: RewardType
     reward_value: str | None
     inclusive: bool
+    automatic_reward: bool
     status: QuestStatus
     creator_public_id: uuid.UUID
     created_at: datetime
@@ -224,6 +226,7 @@ class CreateQuestResponse(BaseModel):
             reward_type=quest.reward_type,
             reward_value=quest.reward_value,
             inclusive=quest.inclusive,
+            automatic_reward=quest.automatic_reward,
             status=quest.status,
             creator_public_id=uuid.UUID(int=0),
             created_at=quest.created_at,
@@ -244,6 +247,7 @@ class QuestSyncDTO(BaseModel):
     reward_type: RewardType
     reward_value: str | None
     inclusive: bool
+    automatic_reward: bool = True
     status: QuestStatus
     creator_public_id: uuid.UUID
     created_at: datetime
@@ -273,6 +277,7 @@ class QuestWithUserPId:
     created_at: datetime
     updated_at: datetime
     accepted_by_public_id: uuid.UUID | None = None
+    automatic_reward: bool = True
 
 
 @dataclass
