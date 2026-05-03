@@ -65,9 +65,10 @@ def get_quest_service(
     repo: QuestRepository = Depends(get_quest_repository), 
     group_repo: GroupRepository = Depends(get_group_repository), 
     group_member_repo: GroupMemberRepository = Depends(get_group_member_repository),
+    user_repo: UserRepository = Depends(get_user_repository),
     notification_service: NotificationService = Depends(get_notification_service)
     ) -> QuestService:
-    return QuestService(repo, group_repo, group_member_repo, notification_service)
+    return QuestService(repo, group_repo, group_member_repo, user_repo, notification_service)
 
 def get_auth_service(user_repo: UserRepository = Depends(get_user_repository)) -> AuthService:
     return AuthService(user_repo)

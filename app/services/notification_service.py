@@ -233,6 +233,32 @@ class NotificationService:
                 response.success_count, response.failure_count)
         except Exception as e:
             logger.error(f"Failed to send quest_rewarded notification: {str(e)}")
+    
+    async def notify_completer_of_rewarded_quest(self, questEvent: QuestUpdateEvent):
+        gm_w_user_details = await self.gm_repo.fetch_group_members_w_details_by_group_id(questEvent.group_id)
+        completer_details = next((member for member in gm_w_user_details if member.user.public_id == questEvent.accepted_by_public_id), None)
+        valid_tokens = [completer_details.user.fcm_token] if completer_details and completer_details.user.fcm_token else []
+        if not valid_tokens:
+            logger.warning(f"No valid FCM token for QUEST_REWARDED completer with public_id {questEvent.accepted_by_public_id}.")
+            return
+        message = messaging.MulticastMessage(
+            tokens=valid_tokens,
+            data={
+                'type': 'QUEST_REWARDED',
+                'group_public_id': str(questEvent.group_public_id),
+                'quest_public_id': str(questEvent.public_id),
+                'accepted_by_public_id': str(questEvent.accepted_by_public_id) if questEvent.accepted_by_public_id else '',
+            },
+            android=self._make_android_config(),
+        )
+        try:
+            loop = asyncio.get_event_loop()
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                response = await loop.run_in_executor(executor, messaging.send_each_for_multicast, message)
+            logger.info("FCM quest_rewarded sent: {} success, {} fail",
+                response.success_count, response.failure_count)
+        except Exception as e:
+            logger.error(f"Failed to send quest_rewarded notification: {str(e)}")
 
     ''' TODO: This is currently only used for role changes, works for joining/leaving as well (for now only join)'''
     async def notify_user_role_changed(self, source_user: User, changed_user: User, group: Group, new_role: MemberRole | str):

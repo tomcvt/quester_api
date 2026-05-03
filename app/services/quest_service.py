@@ -12,6 +12,7 @@ from app.models.user import User
 from app.repositories.group_member_repository import GroupMemberRepository
 from app.repositories.group_repository import GroupRepository
 from app.repositories.quest_repository import QuestRepository
+from app.repositories.user_repository import UserRepository
 from app.schemas.quest import CreateQuestRequest, QuestSyncDTO, QuestUpdateEvent
 from app.services.notification_service import NotificationService
 
@@ -22,11 +23,13 @@ class QuestService:
         repo: QuestRepository,
         group_repo: GroupRepository,
         group_member_repo: GroupMemberRepository,
+        user_repo: UserRepository,
         notification_service: NotificationService,
     ):
         self.repo = repo
         self.group_repo = group_repo
         self.group_member_repo = group_member_repo
+        self.user_repo = user_repo
         self.notification_service = notification_service
 
     async def get_quest_dto_by_public_id(self, public_id: uuid.UUID) -> QuestSyncDTO | None:
@@ -178,6 +181,7 @@ class QuestService:
         if not rewarded:
             logger.warning(f"Auto-reward failed for quest {quest.public_id}; may have already been rewarded.")
             return
+        #TODO [PENDING]: currently only supports currency rewards; if other reward types are added, this logic will need to be expanded and likely moved to a separate RewardService.
         if quest.reward_type == RewardType.CURRENCY and quest.reward_value and quest.accepted_by_id:
             try:
                 amount = int(quest.reward_value)
@@ -189,13 +193,8 @@ class QuestService:
                 logger.info(f"Credited {amount} currency to user_id={quest.accepted_by_id} in group_id={quest.group_id}")
         accepter_public_id = None
         if quest.accepted_by_id:
-            from app.models.user import User as UserModel
-            from sqlalchemy import select
-            result = await self.repo.db.execute(
-                select(UserModel.public_id).where(UserModel.id == quest.accepted_by_id)
-            )
-            row = result.first()
-            accepter_public_id = row[0] if row else None
+            accepter = await self.user_repo.get_user_by_id(quest.accepted_by_id)
+            accepter_public_id = accepter.public_id if accepter else None
         reward_event = QuestUpdateEvent(
             id=quest.id,
             public_id=quest.public_id,
@@ -205,7 +204,11 @@ class QuestService:
             updated_at=quest.updated_at,
             accepted_by_public_id=accepter_public_id,
         )
-        background_tasks.add_task(self.notification_service.notify_group_members_of_rewarded_quest, reward_event)
+        #background_tasks.add_task(self.notification_service.notify_group_members_of_rewarded_quest, reward_event)
+        if background_tasks:
+            background_tasks.add_task(self.notification_service.notify_completer_of_rewarded_quest, reward_event)
+        else:
+            await self.notification_service.notify_completer_of_rewarded_quest(reward_event)
 
     async def reward_quest(self, current_user, quest_public_id: uuid.UUID, background_tasks: BackgroundTasks) -> Quest:
         quest = await self.repo.get_by_public_id(quest_public_id)
