@@ -15,6 +15,7 @@ class UserRole(enum.Enum):
     USER = "user"
     ADMIN = "admin"
     SUPERUSER = "superuser"
+    GUEST = "guest"
 
 class User(Base):
     __tablename__ = "users"
@@ -54,7 +55,8 @@ class User(Base):
     __table_args__ = (
         Index("ix_users_public_id", "public_id"),
         Index("ix_users_installation_id", "installation_id"),
-        Index("ix_users_oauth_sub", "oauth_sub")
+        Index("ix_users_oauth_sub", "oauth_sub"),
+        Index("ix_users_email", "email"),
     )
     
     def __repr__(self):

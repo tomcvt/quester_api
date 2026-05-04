@@ -52,6 +52,7 @@ class DevDataSeeder:
             self.quest_repo, 
             self.group_repo, 
             self.gm_repo, 
+            self.user_repo,
             self.notification_service # no need for notification service in seeding
         )
     

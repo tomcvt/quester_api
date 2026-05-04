@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     database_url: str
     sqlite_url: str
     secret_key: str
+    jwt_secret: str
     firebase_credentials_path: str
     google_client_id: str
     reserved_installation_ids: list[str] = [str(uuid.UUID(int=i)) for i in range(20)]

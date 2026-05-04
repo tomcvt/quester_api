@@ -73,6 +73,25 @@ def get_quest_service(
 def get_auth_service(user_repo: UserRepository = Depends(get_user_repository)) -> AuthService:
     return AuthService(user_repo)
 
+'''
+TODO refactor to authuser and jwt
+async def get_current_user(
+    authorization: str | None = Header(None),
+    repo: UserRepository = Depends(get_user_repository),
+) -> AuthUser:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise UnauthorizedException("Missing token")
+    token = authorization.removeprefix("Bearer ")
+    return decode_access_token(token)  # no DB hit
+
+async def get_full_user(
+    auth: AuthUser = Depends(get_current_user),
+    repo: UserRepository = Depends(get_user_repository),
+) -> User:
+    return await repo.get_by_public_id(auth.public_id)
+
+'''
+
 async def get_current_user(
     x_installation_id: str | None = Depends(_installation_id_header),
     x_session_token: str | None = Depends(_session_token_header),

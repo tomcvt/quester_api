@@ -17,6 +17,26 @@ class UpdateFcmTokenRequest(BaseModel):
     fcm_token: str
 
 #TODO add proper login
+'''return SessionResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            username=user.username,
+            phone_number=user.phone_number,
+            oauth_provider=user.oauth_provider,
+            public_id=user.public_id,
+            role=user.role,
+            installation_id=user.installation_id,
+        )
+'''
+class SessionResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    username: str | None
+    phone_number: str | None
+    oauth_provider: str | None
+    public_id: uuid.UUID
+    role: UserRole
+    installation_id: str
 
 class AuthResponse(BaseModel):
     session_token: str

@@ -1,13 +1,17 @@
+from datetime import datetime, timedelta, timezone
+import hashlib
+import secrets
 import uuid
 
 from loguru import logger
 
 from app.core.config import globalSettings
+from app.core.jwt import REFRESH_TOKEN_EXPIRE_DAYS, create_access_token
 from app.core.oauth import OAuthClaims, verify_google_token
 from app.exceptions import InvalidCredentialsException, UserAlreadyExistsException, UserNotFoundException
 from app.models.user import NewUser, User, UserRole
 from app.repositories.user_repository import UserRepository
-from app.schemas.auth import AuthRequest, AuthResponse, OAuthLoginRequest, RegistrationRequest, RegistrationResponse, UpdateFcmTokenRequest, WebLoginRequest, WebRegisterRequest
+from app.schemas.auth import AuthRequest, AuthResponse, OAuthLoginRequest, RegistrationRequest, RegistrationResponse, SessionResponse, UpdateFcmTokenRequest, WebLoginRequest, WebRegisterRequest
 from app.utils import gen_utils
 
 reserved_uuids = [
@@ -195,3 +199,58 @@ class AuthService:
         logger.info(f"Registered new web user: {created_user.username}")
         return created_user
     
+    async def create_jwt_session(self, installation_id: str, fcm_token: str | None) -> SessionResponse:
+    # upsert user — same logic you have now
+        user = await self.user_repo.get_user_by_installation_id(installation_id)
+        if not user:
+            user = await self.user_repo.create_user(User.new(NewUser(
+                installation_id=installation_id,
+                device_id=f"device_{installation_id}",
+                username=None,
+                role=UserRole.USER,
+            )))
+        
+        # update FCM if changed
+        if fcm_token and user.fcm_token != fcm_token:
+            await self.user_repo.update_fcm_token(user.id, fcm_token)
+        
+        # issue tokens
+        access_token = create_access_token(user)
+        refresh_token, family_id = await self._issue_refresh_token(user.id)
+        
+        return SessionResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            username=user.username,
+            phone_number=user.phone_number,
+            oauth_provider=user.oauth_provider,
+            public_id=user.public_id,
+            role=user.role,
+            installation_id=user.installation_id,
+        )
+
+    async def _issue_refresh_token(self, user_id: int, family_id: uuid.UUID | None = None) -> tuple[str, uuid.UUID]:
+        raw_token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+        fid = family_id or uuid.uuid4()
+        expires_at = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+        await self.user_repo.create_refresh_token(user_id, token_hash, fid, expires_at)
+        return raw_token, fid  # raw goes to client, hash stays in DB
+
+    async def refresh_session(self, raw_refresh_token: str) -> SessionResponse:
+        token_hash = hashlib.sha256(raw_refresh_token.encode()).hexdigest()
+        stored = await self.user_repo.get_refresh_token(token_hash)
+        
+        if not stored or stored.revoked or stored.expires_at < datetime.now(timezone.utc):
+            # if revoked — token was already used, possible theft — invalidate family
+            if stored and stored.revoked:
+                await self.user_repo.revoke_token_family(stored.family_id)
+            raise InvalidCredentialsException("Invalid refresh token")
+        
+        await self.user_repo.revoke_token(stored.id)  # old one dead
+        user = await self.user_repo.get_by_id(stored.user_id)
+        access_token = create_access_token(user)
+        new_refresh, _ = await self._issue_refresh_token(user.id, family_id=stored.family_id)
+        
+        return SessionResponse(access_token=access_token, refresh_token=new_refresh, ...)
+        
