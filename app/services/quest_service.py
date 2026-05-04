@@ -153,7 +153,6 @@ class QuestService:
             logger.info(f"Quest completed: {quest_public_id} by user {current_user.public_id}")
         except IntegrityError:
             raise
-
         updated_quest = await self.repo.get_by_public_id(quest_public_id)
         if not updated_quest:
             raise Exception("Failed to retrieve updated quest after completing.")
@@ -168,6 +167,7 @@ class QuestService:
             source_user_public_id=current_user.public_id,
         )
         background_tasks.add_task(self.notification_service.notify_creator_of_completed_quest, quest_event)
+        #TODO [PENDING]: consider whether creator notification should be emitted immediately upon completion or delayed until reward time if auto-reward is enabled.
 
         if updated_quest.automatic_reward:
             await self._apply_reward(updated_quest, group, background_tasks)
@@ -182,6 +182,7 @@ class QuestService:
             logger.warning(f"Auto-reward failed for quest {quest.public_id}; may have already been rewarded.")
             return
         #TODO [PENDING]: currently only supports currency rewards; if other reward types are added, this logic will need to be expanded and likely moved to a separate RewardService.
+        #TODO [HIGH] : transactional integrity 
         if quest.reward_type == RewardType.CURRENCY and quest.reward_value and quest.accepted_by_id:
             try:
                 amount = int(quest.reward_value)

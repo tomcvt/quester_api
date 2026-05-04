@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     secret_key: str
     jwt_secret: str
     firebase_credentials_path: str
+    dev_mode: bool = False
     google_client_id: str
     reserved_installation_ids: list[str] = [str(uuid.UUID(int=i)) for i in range(20)]
     superuser_password: str

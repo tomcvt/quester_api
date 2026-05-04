@@ -1,5 +1,6 @@
 
 
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -8,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.exceptions import UserAlreadyExistsException
 from app.models.user import User
+from app.models.refresh_tokens import RefreshToken
 
 
 class UserRepository:
@@ -85,6 +87,7 @@ class UserRepository:
         await self.db.refresh(user)
         return user
     
+    #TODO [AFTER] : remove, now refreh token and jwt
     async def update_session_token(self, user_id: int, session_token: str) -> User:
         user = await self.get_user_by_id(user_id)
         if not user:
@@ -94,7 +97,40 @@ class UserRepository:
         await self.db.commit()
         await self.db.refresh(user)
         return user
-
+    
+    async def create_refresh_token(self, user_id: int, token_hash: str, family_id: UUID, expires_at: datetime) -> RefreshToken:
+        refresh_token = RefreshToken(
+            user_id=user_id,
+            token_hash=token_hash,
+            family_id=family_id,
+            expires_at=expires_at
+        )
+        self.db.add(refresh_token)
+        await self.db.commit()
+        await self.db.refresh(refresh_token)
+        return refresh_token
+    
+    async def get_refresh_token(self, token_hash: str) -> RefreshToken | None:
+        result = await self.db.execute(
+            select(RefreshToken).where(RefreshToken.token_hash == token_hash)
+        )
+        return result.scalars().first()
+    
+    async def delete_refresh_token(self, token_id: int) -> None:
+        token = await self.db.get(RefreshToken, token_id)
+        if not token:
+            raise ValueError("Refresh token not found")
+        await self.db.delete(token)
+        await self.db.commit()
+    
+    async def revoke_token(self, token_id: int) -> None:
+        token = await self.db.get(RefreshToken, token_id)
+        if not token:
+            raise ValueError("Refresh token not found")
+        token.revoke()
+        self.db.add(token)
+        await self.db.commit()
+    
     async def create_user(self, user: User) -> User:
         try:
             self.db.add(user)

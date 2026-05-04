@@ -16,6 +16,14 @@ class UpdateFcmTokenRequest(BaseModel):
     installation_id: str
     fcm_token: str
 
+class SessionRequest(BaseModel):
+    installation_id: str
+    fcm_token: str | None = None
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+    
+
 #TODO add proper login
 '''return SessionResponse(
             access_token=access_token,

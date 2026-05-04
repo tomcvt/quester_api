@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import RedirectResponse
 from loguru import logger
-from app.schemas.auth import AuthRequest, AuthResponse, OAuthLoginRequest, RegistrationRequest, RegistrationResponse, TokenResponse, UpdateFcmTokenRequest, WebLoginRequest, WebRegisterRequest
+from app.schemas.auth import AuthRequest, AuthResponse, OAuthLoginRequest, RefreshTokenRequest, RegistrationRequest, RegistrationResponse, SessionRequest, SessionResponse, TokenResponse, UpdateFcmTokenRequest, WebLoginRequest, WebRegisterRequest
 from app.services.auth_service import AuthService
 from app.dependencies import AuthServiceDep, CurrentUser
 from app.exceptions import InvalidCredentialsException
@@ -43,6 +43,37 @@ async def register(
         public_id=newUser.public_id
     )
     logger.info("User registered successfully: {}", response.username)
+    return response
+
+'''
+MEMBER:
+  login (email code / oauth) → issues BOTH access_token + refresh_token
+  access_token expires (15min) → use refresh_token → new pair
+  refresh_token expires (30d) → must login again (email code / oauth)
+
+GUEST:
+  POST /auth/session (installation_id) → issues BOTH access_token + refresh_token
+  access_token expires (15min) → use refresh_token → new pair
+  refresh_token expires (30d) → POST /auth/session again (no login needed, just UUID)
+'''
+
+
+@router.post("/session", response_model=SessionResponse, status_code=status.HTTP_200_OK)
+async def create_session_endpoint(
+    body: SessionRequest,
+    service: AuthServiceDep,
+):
+    response = await service.create_jwt_session(body.installation_id, body.fcm_token)
+    logger.info("Session created successfully for installation_id: {}", body.installation_id)
+    return response
+
+@router.post("/refresh", response_model=SessionResponse, status_code=status.HTTP_200_OK)
+async def refresh_session(
+    body: RefreshTokenRequest,
+    service: AuthServiceDep,
+):
+    response = await service.refresh_jwt_session(body.refresh_token)
+    logger.info("Session refreshed successfully for user: {}", response.username)
     return response
 
 @router.post("/web/login", status_code=status.HTTP_200_OK)

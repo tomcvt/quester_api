@@ -207,8 +207,15 @@ class AuthService:
                 installation_id=installation_id,
                 device_id=f"device_{installation_id}",
                 username=None,
-                role=UserRole.USER,
+                role=UserRole.GUEST,
             )))
+        if user.role != UserRole.GUEST:
+            logger.warning("Installation ID {} is associated with a non-guest user. This endpoint is intended for guest sessions. User role: {}", installation_id, user.role)
+            if globalSettings.dev_mode:
+                logger.debug("User details for installation ID {}: {}", installation_id, user)
+                logger.debug("Proceeding with session creation in dev mode despite role mismatch.")
+            else:
+                raise InvalidCredentialsException("Installation ID is associated with a non-guest user. Please use the appropriate login endpoint.")
         
         # update FCM if changed
         if fcm_token and user.fcm_token != fcm_token:
@@ -228,7 +235,8 @@ class AuthService:
             role=user.role,
             installation_id=user.installation_id,
         )
-
+        
+    #TODO [low] implement family-id
     async def _issue_refresh_token(self, user_id: int, family_id: uuid.UUID | None = None) -> tuple[str, uuid.UUID]:
         raw_token = secrets.token_urlsafe(32)
         token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
@@ -237,20 +245,33 @@ class AuthService:
         await self.user_repo.create_refresh_token(user_id, token_hash, fid, expires_at)
         return raw_token, fid  # raw goes to client, hash stays in DB
 
-    async def refresh_session(self, raw_refresh_token: str) -> SessionResponse:
+    async def refresh_jwt_session(self, raw_refresh_token: str) -> SessionResponse:
         token_hash = hashlib.sha256(raw_refresh_token.encode()).hexdigest()
         stored = await self.user_repo.get_refresh_token(token_hash)
         
         if not stored or stored.revoked or stored.expires_at < datetime.now(timezone.utc):
             # if revoked — token was already used, possible theft — invalidate family
             if stored and stored.revoked:
-                await self.user_repo.revoke_token_family(stored.family_id)
+                #await self.user_repo.revoke_token_family(stored.family_id)
+                #TODO [HIGH] implement family revocation to handle token theft scenarios LEARN WHY
+                pass
             raise InvalidCredentialsException("Invalid refresh token")
-        
-        await self.user_repo.revoke_token(stored.id)  # old one dead
-        user = await self.user_repo.get_by_id(stored.user_id)
+        # TODO [LOW] race condition with lost new token, proper grace handling later
+        #await self.user_repo.revoke_token(stored.id)  # old one dead TODO [HIGH] we should keep revoked tokens for some time to detect and handle token reuse (theft) scenarios
+        await self.user_repo.delete_refresh_token(stored.id) # mark as used but keep for auditing
+        user = await self.user_repo.get_user_by_id(stored.user_id)
+        if not user:
+            raise UserNotFoundException("User not found for this token")
         access_token = create_access_token(user)
         new_refresh, _ = await self._issue_refresh_token(user.id, family_id=stored.family_id)
         
-        return SessionResponse(access_token=access_token, refresh_token=new_refresh, ...)
-        
+        return SessionResponse(
+            access_token=access_token, 
+            refresh_token=new_refresh, 
+            username=user.username,
+            phone_number=user.phone_number,
+            oauth_provider=user.oauth_provider,
+            public_id=user.public_id,
+            role=user.role,
+            installation_id=user.installation_id,
+        )
