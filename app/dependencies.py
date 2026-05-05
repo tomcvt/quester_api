@@ -3,10 +3,11 @@ import uuid
 from typing import Annotated, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.jwt import decode_access_token
 from app.exceptions import ForbiddenException, UnauthorizedException
 from app.models.user import NewUser, User, UserRole
 from sqlalchemy import select
-from fastapi import Cookie, Depends
+from fastapi import Cookie, Depends, Header
 from fastapi.security import APIKeyHeader
 from loguru import logger
 from app.core.database import get_db
@@ -95,9 +96,21 @@ async def get_full_user(
 async def get_current_user(
     x_installation_id: str | None = Depends(_installation_id_header),
     x_session_token: str | None = Depends(_session_token_header),
+    authorization: str | None = Header(None),
     jsessionid: Optional[str] = Cookie(None, alias=COOKIE_NAME),
     repo: UserRepository = Depends(get_user_repository),
     ) -> User | None:
+    
+    # --- Auth flow 0: JWT token (mobile / API clients) ---
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.removeprefix("Bearer ")
+        auth_user = decode_access_token(token)  # no DB hit
+        if auth_user:
+            result = await repo.db.execute(select(User).where(User.public_id == auth_user.public_id))
+            user = result.scalars().first()
+            if user:
+                logger.info(f"Authenticated user {user.installation_id} | {user.username} via JWT token.")
+                return user
 
     # --- Auth flow 1: header-based (mobile / API clients) ---
     if x_installation_id:
