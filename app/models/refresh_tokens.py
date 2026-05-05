@@ -1,6 +1,6 @@
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Index, String, DateTime, Boolean, ForeignKey, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -13,9 +13,9 @@ class RefreshToken(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     token_hash: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     family_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True, native_uuid=False), nullable=False)
-    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     revoked: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     
     __table_args__ = (
         Index("ix_refresh_tokens_token_hash", "token_hash"),
@@ -31,7 +31,7 @@ class RefreshToken(Base):
         return self.__repr__()
     
     def is_expired(self) -> bool:
-        return datetime.utcnow() >= self.expires_at
+        return datetime.now(timezone.utc) >= self.expires_at
     
     def revoke(self):
         self.revoked = True

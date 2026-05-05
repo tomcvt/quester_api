@@ -203,11 +203,14 @@ class AuthService:
     # upsert user — same logic you have now
         user = await self.user_repo.get_user_by_installation_id(installation_id)
         if not user:
+            newRole = UserRole.GUEST
+            if globalSettings.dev_mode: 
+                newRole = UserRole.SUPERUSER if installation_id in reserved_uuids else UserRole.GUEST
             user = await self.user_repo.create_user(User.new(NewUser(
                 installation_id=installation_id,
                 device_id=f"device_{installation_id}",
                 username=None,
-                role=UserRole.GUEST,
+                role=newRole,
             )))
         if user.role != UserRole.GUEST:
             logger.warning("Installation ID {} is associated with a non-guest user. This endpoint is intended for guest sessions. User role: {}", installation_id, user.role)
@@ -249,7 +252,7 @@ class AuthService:
         token_hash = hashlib.sha256(raw_refresh_token.encode()).hexdigest()
         stored = await self.user_repo.get_refresh_token(token_hash)
         
-        if not stored or stored.revoked or stored.expires_at < datetime.now(timezone.utc):
+        if not stored or stored.revoked or stored.expires_at < datetime.now():
             # if revoked — token was already used, possible theft — invalidate family
             if stored and stored.revoked:
                 #await self.user_repo.revoke_token_family(stored.family_id)
